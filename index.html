@@ -1,0 +1,333 @@
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fanyakazi — Earn Every Day, Paid to M-Pesa</title>
+<meta name="description" content="Fanyakazi: unlock earning programs, do quick daily tasks, invite friends and get paid straight to M-Pesa.">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000000; --card:rgba(217,0,0,.10); --line:rgba(255,234,147,.18);
+  --txt:#FFEA93; --dim:rgba(255,234,147,.78); --faint:rgba(255,234,147,.45);
+  --purple:#D90000; --indigo:#D90000; --pink:#8a0000; --orange:#FFEA93;
+  --cyan:#8DB355; --green:#8DB355; --gold:#FFEA93; --red:#D90000;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--txt);line-height:1.55;overflow-x:hidden;
+  background-image:radial-gradient(900px 500px at 85% -5%, rgba(217,0,0,.32), transparent 60%),
+                   radial-gradient(700px 480px at -10% 22%, rgba(141,179,85,.16), transparent 55%),
+                   radial-gradient(760px 500px at 55% 108%, rgba(255,234,147,.12), transparent 55%)}
+a{color:inherit;text-decoration:none}
+.ic{display:inline-block;vertical-align:middle;flex-shrink:0}
+.wrap{max-width:1130px;margin:0 auto;padding:0 20px}
+:focus-visible{outline:2px solid var(--purple);outline-offset:3px;border-radius:6px}
+img{display:block;max-width:100%}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:800;font-size:14.5px;border-radius:13px;padding:13px 24px;cursor:pointer;border:none;transition:transform .16s,box-shadow .16s;white-space:nowrap}
+.btn:hover{transform:translateY(-2px)}
+.btn-hot{background:linear-gradient(135deg,#D90000,#8a0000 50%,#D90000);color:#FFEA93;box-shadow:0 10px 28px rgba(217,0,0,.45)}
+.btn-line{background:rgba(255,255,255,.08);color:#fff;border:1px solid var(--line)}
+.btn-line:hover{background:rgba(255,255,255,.14)}
+.btn-lg{padding:16px 32px;font-size:15.5px}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:60;background:rgba(0,0,0,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:900;font-size:19px}
+.brand .lg{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--indigo),var(--pink));display:flex;align-items:center;justify-content:center;color:#fff;overflow:hidden}
+.brand .lg img{width:100%;height:100%;object-fit:cover}
+.nav-a{display:flex;gap:9px}
+.nav-a .btn{padding:10px 18px;font-size:13.5px}
+
+/* HERO */
+.hero{padding:58px 0 26px}
+.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:44px;align-items:center}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+  background:linear-gradient(90deg,rgba(141,179,85,.18),rgba(255,234,147,.12));border:1px solid rgba(141,179,85,.40);color:#8DB355;padding:7px 15px;border-radius:999px;margin-bottom:20px}
+.kicker .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(141,179,85,.55)}55%{box-shadow:0 0 0 8px rgba(141,179,85,0)}}
+h1{font-size:clamp(36px,6.4vw,60px);font-weight:900;line-height:1.05;letter-spacing:-1.6px;margin-bottom:18px}
+h1 .g1{background:linear-gradient(90deg,var(--cyan),var(--indigo),var(--purple),var(--pink),var(--orange));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lede{font-size:clamp(15px,2.3vw,17.5px);color:var(--dim);max-width:480px;margin-bottom:28px}
+.cta-row{display:flex;gap:13px;flex-wrap:wrap;margin-bottom:30px}
+.proof{display:flex;gap:10px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;padding:9px 15px;border-radius:999px;color:#fff}
+.chip.c1{background:linear-gradient(135deg,var(--green),#6a8a38);color:#000}
+.chip.c2{background:linear-gradient(135deg,var(--orange),#d4c06a);color:#000}
+.chip.c3{background:linear-gradient(135deg,#D90000,#8a0000)}
+
+/* HERO VISUAL — image + floating earning cards */
+.hero-vis{position:relative;min-height:420px}
+.hv-img{width:100%;height:420px;object-fit:cover;border-radius:26px;border:1px solid var(--line);box-shadow:0 30px 70px rgba(0,0,0,.5)}
+.hv-fallback{width:100%;height:420px;border-radius:26px;background:linear-gradient(135deg,#000000,#D90000 45%,#8DB355);display:none;align-items:center;justify-content:center}
+.float{position:absolute;display:flex;align-items:center;gap:11px;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:16px;padding:12px 16px;box-shadow:0 14px 34px rgba(0,0,0,.45);animation:bob 5s ease-in-out infinite}
+.float .fi{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.float b{font-size:14.5px;display:block;line-height:1.15}
+.float span{font-size:11px;color:var(--faint)}
+.f1{top:26px;left:-26px}.f1 .fi{background:linear-gradient(135deg,#D90000,#8a0000);color:#FFEA93}
+.f2{bottom:88px;right:-22px;animation-delay:1.2s}.f2 .fi{background:linear-gradient(135deg,var(--purple),var(--pink))}
+.f3{bottom:-18px;left:34px;animation-delay:2.3s}.f3 .fi{background:linear-gradient(135deg,var(--green),#6a8a38);color:#000}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+
+/* TICKER */
+.ticker{border-block:1px solid var(--line);padding:13px 0;margin-top:46px;overflow:hidden;background:rgba(255,255,255,.03)}
+.tk{display:flex;gap:46px;width:max-content;animation:slide 26s linear infinite;font-size:12.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--faint)}
+.tk span{display:flex;align-items:center;gap:9px;white-space:nowrap}
+.tk .ic{color:var(--purple)}
+.tk span:nth-child(5n+2) .ic{color:var(--orange)}.tk span:nth-child(5n+3) .ic{color:var(--cyan)}.tk span:nth-child(5n+4) .ic{color:var(--green)}.tk span:nth-child(5n) .ic{color:var(--pink)}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+/* SECTIONS */
+.sec{padding:70px 0 0}
+.eyebrow{font-size:11.5px;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;
+  background:linear-gradient(90deg,var(--indigo),var(--pink));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+h2{font-size:clamp(25px,4.6vw,38px);font-weight:900;letter-spacing:-1px;margin-bottom:10px}
+.sub{color:var(--dim);font-size:15.5px;max-width:560px}
+
+/* PROGRAM CARDS with images */
+.progs{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:36px}
+.prog{border-radius:22px;overflow:hidden;border:1px solid var(--line);background:var(--card);transition:transform .2s,box-shadow .2s;display:flex;flex-direction:column}
+.prog:hover{transform:translateY(-6px);box-shadow:0 20px 46px rgba(0,0,0,.4)}
+.prog .ph{position:relative;height:168px}
+.prog .ph img{width:100%;height:100%;object-fit:cover}
+.prog .ph .grad-fb{position:absolute;inset:0;display:none}
+.prog .ph::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.92))}
+.prog .badge{position:absolute;top:13px;left:13px;z-index:2;display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:900;color:#fff;padding:7px 13px;border-radius:999px}
+.prog .price{position:absolute;bottom:11px;right:13px;z-index:2;font-size:12px;font-weight:900;background:#FFEA93;color:#000;padding:6px 12px;border-radius:999px}
+.prog .bd{padding:20px 22px 22px;display:flex;flex-direction:column;flex:1}
+.prog h3{font-size:20px;font-weight:900;letter-spacing:-.4px;margin-bottom:6px}
+.prog p{color:var(--dim);font-size:13.8px;flex:1;margin-bottom:16px}
+.prog .earn{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px}
+.prog .earn b{font-size:17px;font-weight:900}
+.prog .earn span{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.8px}
+.p-hotel .badge{background:linear-gradient(135deg,#D90000,#8a0000);color:#FFEA93} .p-hotel .earn b{color:var(--red)} .p-hotel .grad-fb{background:linear-gradient(135deg,#000000,#D90000)}
+.p-y99 .badge{background:linear-gradient(135deg,#FFEA93,#c4b050);color:#000} .p-y99 .earn b{color:var(--gold)} .p-y99 .grad-fb{background:linear-gradient(135deg,#3a3500,#8DB355)}
+.p-ai .badge{background:linear-gradient(135deg,var(--green),#6a8a38);color:#000} .p-ai .earn b{color:var(--cyan)} .p-ai .grad-fb{background:linear-gradient(135deg,#1a2408,#8DB355)}
+
+/* STEPS — colorful */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:36px}
+.step{border-radius:20px;padding:24px;color:#fff;position:relative;overflow:hidden;transition:transform .2s}
+.step:hover{transform:translateY(-4px)}
+.step::after{content:'';position:absolute;right:-24px;top:-24px;width:96px;height:96px;border-radius:50%;background:rgba(255,255,255,.14)}
+.step .si{width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:15px}
+.step h4{font-size:16.5px;font-weight:900;margin-bottom:5px}
+.step p{font-size:13.3px;opacity:.92}
+.s1{background:linear-gradient(135deg,#D90000,#8a0000);color:#FFEA93}
+.s2{background:linear-gradient(135deg,#8DB355,#6a8a38);color:#000}
+.s3{background:linear-gradient(135deg,#FFEA93,#c4b050);color:#000}
+.s4{background:linear-gradient(135deg,#000000,#D90000);color:#FFEA93}
+
+/* TEAM split with image */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;margin-top:38px}
+.flist{list-style:none;display:flex;flex-direction:column;gap:13px;margin-top:20px}
+.flist li{display:flex;gap:12px;align-items:flex-start;color:var(--dim);font-size:14.5px}
+.flist .ic{color:var(--green);margin-top:2px}
+.team-vis{position:relative}
+.team-vis img{width:100%;height:380px;object-fit:cover;border-radius:24px;border:1px solid var(--line);box-shadow:0 24px 56px rgba(0,0,0,.45)}
+.tv-fallback{width:100%;height:380px;border-radius:24px;background:linear-gradient(135deg,#000000,#8DB355 50%,#FFEA93);display:none}
+.lvl-tags{position:absolute;left:16px;bottom:16px;right:16px;display:flex;gap:9px;flex-wrap:wrap}
+.lvl-tag{background:rgba(0,0,0,.9);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:9px 14px;font-size:12.5px;font-weight:900;display:flex;align-items:center;gap:8px}
+.lvl-tag i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.lvl-tag:nth-child(1) i{background:var(--green)}.lvl-tag:nth-child(2) i{background:var(--cyan)}.lvl-tag:nth-child(3) i{background:var(--gold)}
+
+/* CTA */
+.cta{margin-top:78px;border-radius:28px;padding:58px 30px;text-align:center;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#D90000,#8a0000 45%,#8DB355 80%,#FFEA93)}
+.cta h2{margin-bottom:10px;color:#FFEA93}
+.cta p{color:rgba(0,0,0,.85);margin-bottom:28px;font-size:16px}
+.cta .btn-hot{background:#000;color:#FFEA93;box-shadow:0 10px 28px rgba(0,0,0,.3)}
+
+footer{border-top:1px solid var(--line);margin-top:74px;padding:34px 0;text-align:center;color:var(--faint);font-size:13px}
+footer .fl{display:flex;gap:22px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+footer .fl a{color:var(--dim);font-size:13.5px}
+footer .fl a:hover{color:#FFEA93}
+
+.rv{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
+.rv.in{opacity:1;transform:none}
+
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:56px;text-align:center}.lede{margin-inline:auto}.cta-row,.proof{justify-content:center}
+  .split{grid-template-columns:1fr;gap:34px}.f1{left:2px}.f2{right:2px}}
+@media(max-width:430px){.nav-a .btn .ic{display:none}.nav-a .btn{padding:9px 14px}.brand{font-size:17px}
+  .hv-img,.hv-fallback{height:330px}.float{padding:10px 13px}.float b{font-size:13px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="./pages/index.php.html">
+      <span class="lg"><img src="./images/Gemini_Generated_Image_ax4xpuax4xpuax4x-removebg-preview.png" alt="Fanyakazi.com"></span>
+      FANYAKAZI    </a>
+    <div class="nav-a">
+      <a class="btn btn-line" href="./pages/login.php.html"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /></svg> Login</a>
+      <a class="btn btn-hot" href="./pages/register.php.html"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></svg> Register</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="kicker"><span class="dot"></span> Paid out via M-Pesa</span>
+      <h1>Turn your phone into a <span class="g1">daily income</span></h1>
+      <p class="lede">Unlock earning programs on Fanyakazi, finish quick tasks, invite friends — and withdraw straight to M-Pesa.</p>
+      <div class="cta-row">
+        <a class="btn btn-hot btn-lg" href="./pages/register.php.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></svg> Start earning free</a>
+        <a class="btn btn-line btn-lg" href="#programs">See programs</a>
+      </div>
+      <div class="proof">
+        <span class="chip c1"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7" /></svg> Daily task resets</span>
+        <span class="chip c2"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v9M9.4 9.6c0-1.1 1.15-1.9 2.6-1.9s2.6.8 2.6 1.9c0 2.6-5.2 1.6-5.2 4.4 0 1.1 1.15 1.9 2.6 1.9s2.6-.8 2.6-1.9" /></svg> Real KSh rewards</span>
+        <span class="chip c3"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 4.5 5v6c0 5 3.2 8.6 7.5 10.4C16.3 19.6 19.5 16 19.5 11V5L12 2z" /><path d="m9 11.6 2.2 2.2L15.5 9" /></svg> Instant unlock</span>
+      </div>
+    </div>
+
+    <div class="hero-vis">
+      <img class="hv-img" loading="lazy" alt="Happy person earning on their phone" src="./images/photo-1556742049-0cfed4f6a45d.webp" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="hv-fallback"></div>
+      <div class="float f1"><span class="fi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="1.6" /><path d="M9 22v-4h6v4" /><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01" /></svg></span><span><b>+ KSh 300</b><span>Hotel review paid</span></span></div>
+      <div class="float f2"><span class="fi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg></span><span><b>+ KSh 300</b><span>Y99 session done</span></span></div>
+      <div class="float f3"><span class="fi"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg></span><span><b>+ Commission</b><span>Friend unlocked a program</span></span></div>
+    </div>
+  </div>
+
+  <div class="ticker" aria-hidden="true">
+    <div class="tk">
+            <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="1.6" /><path d="M9 22v-4h6v4" /><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01" /></svg> Hotel Reviews · KSh 300/review</span>
+      <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg> Y99 · KSh 300/session</span>
+      <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="2.5" /><path d="M12 8V5" /><circle cx="12" cy="3.4" r="1.3" /><path d="M9 13h.01M15 13h.01" /><path d="M9.5 17h5" /><path d="M2 12.5v2.5M22 12.5v2.5" /></svg> AI Training · KSh 500/session</span>
+      <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg> Commission on every unlock</span>
+      <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7z" /><path d="M22 2 11 13" /></svg> Withdraw to M-Pesa anytime</span>
+            <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="1.6" /><path d="M9 22v-4h6v4" /><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01" /></svg> Hotel Reviews · KSh 300/review</span>
+      <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg> Y99 · KSh 300/session</span>
+      <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="2.5" /><path d="M12 8V5" /><circle cx="12" cy="3.4" r="1.3" /><path d="M9 13h.01M15 13h.01" /><path d="M9.5 17h5" /><path d="M2 12.5v2.5M22 12.5v2.5" /></svg> AI Training · KSh 500/session</span>
+      <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg> Commission on every unlock</span>
+      <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7z" /><path d="M22 2 11 13" /></svg> Withdraw to M-Pesa anytime</span>
+          </div>
+  </div>
+</header>
+
+<section class="sec" id="programs">
+  <div class="wrap">
+    <div class="rv in">
+      <div class="eyebrow">Earning programs</div>
+      <h2>Unlock once. Earn every day.</h2>
+      <p class="sub">One small unlock fee opens the program for good — every task you finish pays into its own wallet.</p>
+    </div>
+    <div class="progs">
+      <article class="prog p-hotel rv in">
+        <div class="ph">
+          <img loading="lazy" alt="Luxury hotel with a pool" src="./images/photo-1566073771259-6a8506099945.webp" onerror="this.style.display='none';this.parentNode.querySelector('.grad-fb').style.display='block'">
+          <div class="grad-fb"></div>
+          <span class="badge"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="1.6" /><path d="M9 22v-4h6v4" /><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01" /></svg> Hotel Reviews</span>
+          <span class="price">Unlock KSh 80</span>
+        </div>
+        <div class="bd">
+          <h3>Review hotels, get paid</h3>
+          <p>Rate real hotels and write short reviews. They reset daily, so the earning never stops.</p>
+          <div class="earn"><span>Per review</span><b>+ KSh 300</b></div>
+        </div>
+      </article>
+
+      <article class="prog p-y99 rv in">
+        <div class="ph">
+          <img loading="lazy" alt="Analytics dashboard on a screen" src="./images/photo-1551288049-bebda4e38f71.webp" onerror="this.style.display='none';this.parentNode.querySelector('.grad-fb').style.display='block'">
+          <div class="grad-fb"></div>
+          <span class="badge"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg> Y99</span>
+          <span class="price">Unlock KSh 100</span>
+        </div>
+        <div class="bd">
+          <h3>Quick guided sessions</h3>
+          <p>Run a short timed session, complete it, get paid into your Y99 wallet — day after day.</p>
+          <div class="earn"><span>Per session</span><b>+ KSh 300</b></div>
+        </div>
+      </article>
+
+      <article class="prog p-ai rv in">
+        <div class="ph">
+          <img loading="lazy" alt="Futuristic AI visual" src="./images/photo-1677442136019-21780ecad995.webp" onerror="this.style.display='none';this.parentNode.querySelector('.grad-fb').style.display='block'">
+          <div class="grad-fb"></div>
+          <span class="badge"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="2.5" /><path d="M12 8V5" /><circle cx="12" cy="3.4" r="1.3" /><path d="M9 13h.01M15 13h.01" /><path d="M9.5 17h5" /><path d="M2 12.5v2.5M22 12.5v2.5" /></svg> AI Training</span>
+          <span class="price">Unlock KSh 100</span>
+        </div>
+        <div class="bd">
+          <h3>Train AI, earn daily</h3>
+          <p>Guided AI training sessions that pay per completion — unlock once, keep earning.</p>
+          <div class="earn"><span>Per session</span><b>+ KSh 500</b></div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="rv in">
+      <div class="eyebrow">How it works</div>
+      <h2>Four steps to your first payout</h2>
+    </div>
+    <div class="steps">
+      <div class="step s1 rv in"><span class="si"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></svg></span><h4>Create an account</h4><p>Sign up free with your phone number in under a minute.</p></div>
+      <div class="step s2 rv in"><span class="si"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="11" width="15" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 7.7-1.5" /><circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none" /></svg></span><h4>Unlock a program</h4><p>Pay once with M-Pesa. Access opens the moment payment confirms.</p></div>
+      <div class="step s3 rv in"><span class="si"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg></span><h4>Do daily tasks</h4><p>Reviews and sessions pay into your wallets. Limits reset daily.</p></div>
+      <div class="step s4 rv in"><span class="si"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7z" /><path d="M22 2 11 13" /></svg></span><h4>Withdraw</h4><p>Cash out to M-Pesa whenever you're ready. Money lands on your phone.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap split">
+    <div class="rv in">
+      <div class="eyebrow">Referrals &amp; team</div>
+      <h2>Your circle pays you back</h2>
+      <p class="sub">Share your link. When someone you invited unlocks a program, a commission drops into your commission wallet — automatically, once per unlock.</p>
+      <ul class="flist">
+        <li><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7" /></svg> Commission on every program unlock (e.g. 80% of the fee)</li>
+        <li><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7" /></svg> Separate commission wallets — earnings never mix</li>
+        <li><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7" /></svg> Multi-level team: see who's active at each level</li>
+      </ul>
+    </div>
+    <div class="team-vis rv in">
+      <img loading="lazy" alt="Friends celebrating together" src="./images/photo-1529156069898-49953e39b3ac.webp" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="tv-fallback"></div>
+      <div class="lvl-tags">
+        <span class="lvl-tag"><i></i> Level 1 · Direct</span>
+        <span class="lvl-tag"><i></i> Level 2</span>
+        <span class="lvl-tag"><i></i> Level 3</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="cta rv in">
+      <h2>Your phone is the office.</h2>
+      <p>Join Fanyakazi free and unlock your first program today.</p>
+      <a class="btn btn-hot btn-lg" href="./pages/register.php.html"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></svg> Create free account</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fl">
+      <a href="./pages/login.php.html">Login</a>
+      <a href="./pages/register.php.html">Register</a>
+      <a href="#programs">Programs</a>
+    </div>
+    © 2026 Fanyakazi. All rights reserved.
+  </div>
+</footer>
+
+<script type="module" src="./scripts/paystack.js"></script>
+<script>
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { document.querySelectorAll('.rv').forEach(e=>e.classList.add('in')); return; }
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); },{threshold:.12});
+  document.querySelectorAll('.rv').forEach(function(e){ io.observe(e); });
+})();
+</script>
+
+
+</body></html>

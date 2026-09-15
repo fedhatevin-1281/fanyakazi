@@ -1,0 +1,784 @@
+<html lang="en" data-theme="dark"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account — Fanyakazi</title>
+<link rel="stylesheet" href="../styles/all.min.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+    Fanyakazi — Register Page
+    Fanyakazi Theme · Light/Dark Mode
+═══════════════════════════════════════════════════════════════ */
+
+:root {
+    --P:  #73c8ce;
+    --OK: #22c55e;
+    --WN: #f59e0b;
+    --DN: #ef4444;
+    --Pr: 115,200,206;
+}
+
+:root, [data-theme="dark"] {
+    --bg1:      #07060f;
+    --bg2:      #0e0c1a;
+    --bg3:      #141228;
+    --bdr:      rgba(255,255,255,0.07);
+    --bdr-p:    rgba(var(--Pr),0.22);
+    --txt:      rgba(255,255,255,0.90);
+    --txt2:     rgba(255,255,255,0.50);
+    --txt3:     rgba(255,255,255,0.22);
+    --P-bg:     rgba(var(--Pr),0.10);
+    --OK-bg:    rgba(34,197,94,0.10);
+    --WN-bg:    rgba(245,158,11,0.10);
+    --DN-bg:    rgba(239,68,68,0.12);
+    --card:     #0e0c1a;
+    --card2:    #141228;
+    --shadow:   0 4px 24px rgba(0,0,0,0.5);
+    --input-bg: rgba(255,255,255,0.05);
+    --input-bdr:rgba(255,255,255,0.12);
+    color-scheme: dark;
+}
+
+[data-theme="light"] {
+    --bg1:      #f4f4f6;
+    --bg2:      #ffffff;
+    --bg3:      #f4f4f6;
+    --bdr:      rgba(0,0,0,0.09);
+    --bdr-p:    rgba(var(--Pr),0.30);
+    --txt:      #111118;
+    --txt2:     #5a5a72;
+    --txt3:     #9898b0;
+    --P-bg:     rgba(var(--Pr),0.08);
+    --OK-bg:    rgba(22,163,74,0.08);
+    --WN-bg:    rgba(180,120,0,0.08);
+    --DN-bg:    rgba(200,30,80,0.08);
+    --card:     #ffffff;
+    --card2:    #f4f4f6;
+    --shadow:   0 2px 16px rgba(0,0,0,0.08);
+    --input-bg: rgba(0,0,0,0.03);
+    --input-bdr:rgba(0,0,0,0.12);
+    color-scheme: light;
+}
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body {
+    font-family: system-ui,-apple-system,'Segoe UI',sans-serif;
+    font-size: 13px; background: var(--bg1); color: var(--txt);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    padding: 20px 14px 40px;
+    position: relative; overflow-x: hidden;
+    transition: background .25s, color .25s;
+}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(var(--Pr),.25); border-radius: 4px; }
+
+/* ── Animated grid bg (dark only) ── */
+[data-theme="dark"] body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+        linear-gradient(rgba(var(--Pr),.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--Pr),.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+    animation: gridPulse 8s ease-in-out infinite alternate;
+}
+@keyframes gridPulse { from{opacity:.4} to{opacity:.9} }
+
+[data-theme="dark"] body::after {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(ellipse 60% 40% at 20% 20%, rgba(var(--Pr),.07) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 80% 75%, rgba(var(--Pr),.05) 0%, transparent 55%);
+}
+
+/* ── Theme toggle ── */
+.theme-btn {
+    position: fixed; top: 12px; right: 12px; z-index: 999;
+    width: 36px; height: 36px; border-radius: 9px;
+    background: var(--card); border: 1px solid var(--bdr);
+    cursor: pointer; color: var(--txt2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; transition: all .18s;
+}
+.theme-btn:hover { color: var(--P); border-color: var(--bdr-p); background: var(--P-bg); }
+
+/* ── Card ── */
+.card {
+    position: relative; z-index: 10;
+    background: var(--card); border: 1px solid var(--bdr);
+    border-radius: 18px; padding: 22px 20px 18px;
+    width: 100%; max-width: 400px;
+    box-shadow: var(--shadow);
+    transition: background .25s, border-color .25s;
+    animation: cardIn .5s cubic-bezier(.22,1,.36,1) both;
+}
+[data-theme="dark"] .card { border-color: rgba(var(--Pr),.14); }
+@keyframes cardIn { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Brand row ── */
+.brand-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px;
+}
+.brand-ring {
+    width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%;
+    border: 2px solid var(--P);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 12px rgba(var(--Pr),.3);
+    animation: ringSpin 8s linear infinite;
+}
+@keyframes ringSpin { to { filter: hue-rotate(360deg); } }
+.brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--P); }
+.brand-logo-img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
+.brand-text { flex:1; min-width:0; }
+.brand-name { font-size:15px; font-weight:800; color:var(--txt); letter-spacing:.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.brand-sub  { font-size:10px; color:var(--txt2); font-weight:600; letter-spacing:.5px; margin-top:1px; }
+
+/* ── Divider ── */
+.brand-divider {
+    height: 1px; margin: 0 0 14px;
+    background: linear-gradient(90deg, transparent, rgba(var(--Pr),.35), transparent);
+}
+
+/* ── Section label ── */
+.sec-lbl {
+    font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--P); opacity: .7; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 8px;
+}
+.sec-lbl::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,rgba(var(--Pr),.3),transparent); }
+
+/* ── Referrer badge ── */
+.referrer-badge {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--P-bg); border: 1px solid rgba(var(--Pr),.18);
+    border-radius: 9px; padding: 8px 11px; margin-bottom: 14px;
+    font-size: 11px; color: var(--txt2); transition: background .25s;
+}
+.referrer-badge.default {
+    background: var(--bg3); border-color: var(--bdr);
+}
+.ref-ico {
+    width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+    background: var(--P); display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #fff;
+}
+.referrer-badge.default .ref-ico { background: var(--bg3); border: 1px solid var(--bdr); color: var(--txt3); }
+.ref-by { color: var(--txt2); }
+.ref-by strong { color: var(--P); font-weight: 700; }
+.referrer-badge.default .ref-by strong { color: var(--txt); }
+
+/* ── Errors banner ── */
+.errors-banner {
+    background: var(--DN-bg); border: 1px solid rgba(239,68,68,.22);
+    border-left: 3px solid var(--DN); border-radius: 9px;
+    padding: 10px 12px; margin-bottom: 14px;
+    animation: fadeUp .3s ease both;
+}
+.errors-banner li {
+    font-size: 11.5px; color: var(--DN); font-weight: 500;
+    list-style: none; display: flex; align-items: flex-start; gap: 6px;
+    margin-bottom: 4px; line-height: 1.5;
+}
+.errors-banner li:last-child { margin-bottom: 0; }
+.errors-banner li i { font-size: 10px; margin-top: 2px; flex-shrink: 0; }
+
+/* ── Fields ── */
+.field { margin-bottom: 11px; }
+.field-lbl {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 4px;
+}
+.field-lbl label, label {
+    display: block; font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--txt2);
+}
+.field-note { font-size: 9px; color: var(--txt3); font-weight: 500; text-transform: none; letter-spacing: 0; }
+
+.input-wrap { position: relative; }
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+select {
+    width: 100%; height: 42px;
+    padding: 0 34px 0 12px;
+    background: var(--input-bg); border: 1px solid var(--input-bdr);
+    border-radius: 9px; font-family: inherit; font-size: 13px;
+    color: var(--txt); outline: none; appearance: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+}
+input::placeholder { color: var(--txt3); font-size: 12px; }
+input:focus, select:focus {
+    border-color: var(--P);
+    box-shadow: 0 0 0 3px rgba(var(--Pr),.14);
+    background: var(--P-bg);
+}
+
+/* Validation states */
+input.f-valid, select.f-valid   { border-color: var(--OK); background: var(--OK-bg); }
+input.f-invalid, select.f-invalid { border-color: var(--DN); background: var(--DN-bg); }
+input.f-checking { border-color: var(--WN); }
+input.f-valid:focus   { box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
+input.f-invalid:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
+
+/* Select caret */
+.select-wrap { position: relative; }
+.select-wrap::after {
+    content: ''; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--txt3); pointer-events: none;
+}
+[data-theme="light"] select option { background: #fff; color: #111; }
+[data-theme="dark"]  select option { background: #141228; color: #fff; }
+
+/* Field status icon */
+.f-status {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 12px; pointer-events: none; display: none;
+}
+.pw-status { right: 32px; }
+
+/* Field message */
+.f-msg {
+    font-size: 10px; font-weight: 600; margin-top: 3px;
+    max-height: 0; overflow: hidden;
+    display: flex; align-items: center; gap: 4px;
+    transition: max-height .15s;
+}
+.f-msg.show { max-height: 22px; }
+.f-msg.ok   { color: var(--OK); }
+.f-msg.err  { color: var(--DN); }
+.f-msg.chk  { color: var(--WN); }
+
+@keyframes spin-icon { to { transform: rotate(360deg); } }
+.spin-anim { display: inline-block; animation: spin-icon .7s linear infinite; }
+
+/* Password eye */
+.toggle-pwd {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--txt3); font-size: 12px; padding: 2px; transition: color .15s;
+}
+.toggle-pwd:hover { color: var(--P); }
+
+/* ── Form section divider ── */
+.form-divider {
+    height: 1px; margin: 8px 0 10px;
+    background: linear-gradient(90deg, transparent, var(--bdr), transparent);
+}
+
+/* ── Terms box ── */
+.terms-box {
+    border: 1px solid var(--input-bdr); border-radius: 9px;
+    padding: 9px 11px; margin-bottom: 12px;
+    background: var(--input-bg); transition: border-color .15s, background .15s;
+}
+.terms-box.error { border-color: var(--DN); background: var(--DN-bg); }
+.terms-box:focus-within { border-color: var(--P); }
+.terms-row { display: flex; align-items: flex-start; gap: 9px; }
+.terms-row input[type="checkbox"] {
+    width: 14px; height: 14px; min-width: 14px;
+    margin-top: 2px; accent-color: var(--P); cursor: pointer;
+}
+.terms-text { font-size: 11.5px; color: var(--txt2); line-height: 1.55; }
+.terms-text a { color: var(--P); font-weight: 700; text-decoration: none; }
+.terms-text a:hover { text-decoration: underline; }
+
+/* ── Submit button (matches .copy-btn from dashboard) ── */
+.btn-submit {
+    width: 100%; height: 44px;
+    background: var(--P); color: #fff;
+    border: none; border-radius: 10px;
+    font-family: inherit; font-size: 14px; font-weight: 800;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    letter-spacing: .2px;
+    box-shadow: 0 4px 18px rgba(var(--Pr),.35);
+    transition: filter .18s, transform .18s, box-shadow .18s;
+}
+.btn-submit:hover:not(:disabled) {
+    filter: brightness(1.1); transform: translateY(-1px);
+    box-shadow: 0 6px 22px rgba(var(--Pr),.45);
+}
+.btn-submit:active { transform: translateY(0); }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+[data-theme="light"] .btn-submit { color: #fff; }
+
+.spinner {
+    display: none; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+    border-radius: 50%; animation: spinBtn .6s linear infinite;
+}
+.btn-submit.loading .btn-lbl { display: none; }
+.btn-submit.loading .spinner { display: block; }
+@keyframes spinBtn { to { transform: rotate(360deg); } }
+
+/* ── Card footer ── */
+.card-footer {
+    text-align: center; margin-top: 14px;
+    font-size: 12px; color: var(--txt2);
+}
+.card-footer a { color: var(--P); text-decoration: none; font-weight: 700; }
+.card-footer a:hover { text-decoration: underline; }
+.copy-line {
+    text-align: center; margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--bdr); font-size: 9.5px; color: var(--txt3);
+}
+
+/* ── TOAST (matches dashboard toast) ── */
+.db-toast {
+    position: fixed; top: -80px; left: 50%; transform: translateX(-50%);
+    min-width: 260px; max-width: calc(100vw - 32px);
+    background: var(--card2); border: 1px solid rgba(var(--Pr),.30);
+    border-left: 3px solid var(--P); border-radius: 10px;
+    padding: 10px 36px 10px 12px; z-index: 9999;
+    display: flex; align-items: center; gap: 9px;
+    transition: top .4s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 8px 32px rgba(0,0,0,.3);
+}
+.db-toast.show { top: 14px; }
+.t-dot {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--P);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.t-txt { font-size: 12px; font-weight: 600; color: var(--txt); flex: 1; }
+.t-cls {
+    position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; font-size: 17px; color: var(--txt3); cursor: pointer;
+}
+
+/* ── MODAL (terms) ── */
+.modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.55); z-index: 9998;
+    align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+    background: var(--card2); border: 1px solid var(--bdr);
+    border-radius: 16px; max-width: 400px; width: 100%; max-height: 88vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    animation: cardIn .3s ease both;
+}
+[data-theme="dark"] .modal { border-color: rgba(var(--Pr),.18); }
+.modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 12px; border-bottom: 1px solid var(--bdr);
+}
+.modal-head h3 { font-size: 13px; font-weight: 800; color: var(--P); }
+.modal-close {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: var(--bg3); border: 1px solid var(--bdr); cursor: pointer;
+    font-size: 16px; color: var(--txt2);
+    display: flex; align-items: center; justify-content: center;
+    transition: color .15s, border-color .15s;
+}
+.modal-close:hover { color: var(--P); border-color: var(--bdr-p); }
+.modal-body { overflow-y: auto; padding: 14px 16px; flex: 1; }
+.terms-section { margin-bottom: 14px; }
+.terms-section h4 {
+    font-size: 9px; font-weight: 700; color: var(--P); opacity: .8;
+    text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 5px;
+}
+.terms-section p { font-size: 12px; color: var(--txt2); line-height: 1.65; }
+.terms-highlight {
+    background: var(--P-bg); border: 1px solid rgba(var(--Pr),.18);
+    border-radius: 9px; padding: 11px 13px;
+}
+.modal-foot {
+    padding: 10px 16px 14px; border-top: 1px solid var(--bdr);
+    display: flex; gap: 8px;
+}
+.btn-accept {
+    flex: 1; height: 40px; background: var(--P); color: #fff;
+    border: none; border-radius: 9px; font-family: inherit;
+    font-size: 13px; font-weight: 800; cursor: pointer;
+    transition: filter .15s;
+}
+.btn-accept:hover { filter: brightness(1.1); }
+.btn-decline {
+    height: 40px; padding: 0 14px;
+    background: var(--bg3); color: var(--txt2);
+    border: 1px solid var(--bdr); border-radius: 9px;
+    font-family: inherit; font-size: 13px; cursor: pointer;
+    transition: border-color .15s, color .15s;
+}
+.btn-decline:hover { border-color: var(--bdr-p); color: var(--txt); }
+
+/* ── Animations ── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.brand-row       { animation: fadeUp .4s ease both .05s; }
+.referrer-badge  { animation: fadeUp .4s ease both .09s; }
+.errors-banner   { animation: fadeUp .3s ease both; }
+.field:nth-child(1) { animation: fadeUp .4s ease both .12s; }
+.field:nth-child(2) { animation: fadeUp .4s ease both .15s; }
+.field:nth-child(3) { animation: fadeUp .4s ease both .18s; }
+.field:nth-child(4) { animation: fadeUp .4s ease both .21s; }
+.terms-box  { animation: fadeUp .4s ease both .27s; }
+.btn-submit { animation: fadeUp .4s ease both .30s; }
+.card-footer{ animation: fadeUp .4s ease both .33s; }
+
+@media(max-width:420px) { .card { padding:18px 15px 16px; border-radius:14px; } }
+@media(max-width:360px) { body { padding:14px 10px; } .card { padding:15px 12px; } }
+</style>
+</head>
+<body>
+
+<!-- Theme toggle -->
+<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+    <i id="theme-ico" class="fa-solid fa-sun"></i>
+</button>
+
+<div class="card">
+
+    <!-- Brand row -->
+    <div class="brand-row">
+        <div class="brand-ring">
+                            <img class="brand-logo-img" src="../images/Gemini_Generated_Image_ax4xpuax4xpuax4x-removebg-preview.png" alt="Fanyakazi.com">
+                    </div>
+        <div class="brand-text">
+            <div class="brand-name">Fanyakazi</div>
+            <div class="brand-sub">Create account — start earning today</div>
+        </div>
+    </div>
+
+    <div class="brand-divider"></div>
+
+    <!-- Section label -->
+    <div class="sec-lbl">New Member Registration</div>
+
+    <!-- Referrer badge -->
+    <div class="referrer-badge default">
+        <div class="ref-ico">
+            <i class="fa-solid fa-building"></i>
+        </div>
+        <span class="ref-by">Invited by <strong>fanyakazi</strong></span>
+    </div>
+
+    <!-- Server errors -->
+    
+    <!-- Form -->
+    <form method="POST" id="registerForm" novalidate>
+
+        <!-- Username -->
+        <div class="field">
+            <div class="field-lbl">
+                <label for="username">Username</label>
+                <span class="field-note">display name only</span>
+            </div>
+            <div class="input-wrap">
+                <input type="text" id="username" name="username" value="" placeholder="Your display name" autocomplete="nickname" maxlength="40">
+                <span class="f-status" id="st-username"></span>
+            </div>
+            <div class="f-msg" id="msg-username"></div>
+        </div>
+
+        <!-- Phone -->
+        <div class="field">
+            <div class="field-lbl"><label for="phone">Phone</label></div>
+            <div class="input-wrap">
+                <input type="tel" id="phone" name="phone" value="" placeholder="07XXXXXXXX" autocomplete="username" inputmode="tel">
+                <span class="f-status" id="st-phone"></span>
+            </div>
+            <div class="f-msg" id="msg-phone"></div>
+        </div>
+
+        <!-- Country (Kenya is the default; no blank option so it can never be empty) -->
+        <div class="field">
+            <div class="field-lbl"><label for="country">Country</label></div>
+            <div class="select-wrap">
+                <select id="country" name="country" required>
+                                        <option value="Kenya" selected>Kenya</option>
+                                        <option value="Tanzania">Tanzania</option>
+                                        <option value="Uganda">Uganda</option>
+                                    </select>
+            </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+            <div class="field-lbl"><label for="password">Password</label></div>
+            <div class="input-wrap">
+                <input type="password" id="password" name="password" placeholder="Min. 6 characters" autocomplete="new-password" style="padding-right:58px">
+                <span class="f-status pw-status" id="st-password"></span>
+                <button type="button" class="toggle-pwd" id="togglePwd" aria-label="Show password">
+                    <i class="fa-regular fa-eye-slash" id="eyeIcon"></i>
+                </button>
+            </div>
+            <div class="f-msg" id="msg-password"></div>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <!-- Terms -->
+        <div class="terms-box" id="termsBox">
+            <div class="terms-row">
+                <input type="checkbox" id="termsCheck" name="terms">
+                <span class="terms-text">
+                    I agree to the <a href="#" id="openTerms">Terms of Service</a>
+                    and <a href="#" id="openTerms2">No-Refund Policy</a>
+                </span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+            <i class="fa-solid fa-user-plus" style="font-size:13px"></i>
+            <span class="btn-lbl">Create Account</span>
+            <div class="spinner"></div>
+        </button>
+
+    </form>
+
+    <div class="card-footer">
+        Already have an account? <a href="../pages/login.php.html">Sign In</a>
+    </div>
+    <p class="copy-line">© 2026 Fanyakazi. All rights reserved.</p>
+
+</div><!-- /.card -->
+
+<!-- Terms Modal -->
+<div class="modal-overlay" id="termsModal" role="dialog" aria-modal="true">
+    <div class="modal">
+        <div class="modal-head">
+            <h3>Terms of Service &amp; Refund Policy</h3>
+            <button class="modal-close" id="closeModal" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="terms-section">
+                <h4>1. Nature of Service</h4>
+                <p>Fanyakazi provides a digital subscription service. The registration fee grants immediate access to the Fanyakazi Hub and affiliate portal.</p>
+            </div>
+            <div class="terms-section">
+                <h4>2. No-Refund Policy</h4>
+                <p>Due to the digital nature of our products, the registration fee is strictly non-refundable once the account is activated.</p>
+            </div>
+            <div class="terms-section">
+                <h4>3. Anti-Fraud &amp; Reversals</h4>
+                <p>Unauthorized M-PESA reversals are a breach of contract and are reported to Safaricom and relevant authorities.</p>
+            </div>
+            <div class="terms-section">
+                <h4>4. Affiliate Disclaimer</h4>
+                <p>We provide links to third-party platforms. We do not own these platforms and are not responsible for their independent terms.</p>
+            </div>
+            <div class="terms-section">
+                <h4>5. Data Privacy</h4>
+                <p>We comply with the Kenya Data Protection Act. Your information is used solely for account management.</p>
+            </div>
+            <div class="terms-section terms-highlight">
+                <h4>Refund Policy Summary</h4>
+                <p>The registration fee is a non-refundable payment for immediate access to digital training materials and affiliate tools.</p>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-accept" id="acceptTerms">I Agree &amp; Accept</button>
+            <button class="btn-decline" id="declineTerms">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="db-toast" id="db-toast">
+    <div class="t-dot" id="t-dot">✓</div>
+    <span class="t-txt" id="t-txt"></span>
+    <button class="t-cls" onclick="hideToast()">×</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../scripts/supabase-config.js"></script>
+<script src="../scripts/supabase-auth.js"></script>
+<script>
+/* ── Theme engine ─────────────────────────────────────────────── */
+(function(){
+    var saved = localStorage.getItem('ev_theme') || 'dark';
+    applyTheme(saved, false);
+})();
+function applyTheme(t, animate){
+    var html = document.documentElement;
+    if (animate) html.style.transition = 'background .25s,color .25s';
+    html.setAttribute('data-theme', t);
+    localStorage.setItem('ev_theme', t);
+    var ico = document.getElementById('theme-ico');
+    if (ico) ico.className = t === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+}
+window.toggleTheme = function(){
+    var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(cur === 'dark' ? 'light' : 'dark', true);
+};
+
+/* ── Toast (matches dashboard toast) ─────────────────────────── */
+var ADMIN_P  = '#D90000';
+var ADMIN_DN = '#D90000';
+var ADMIN_OK = '#8DB355';
+var toastTimer = null;
+
+function showToast(type, msg){
+    var t   = document.getElementById('db-toast');
+    var dot = document.getElementById('t-dot');
+    var txt = document.getElementById('t-txt');
+    clearTimeout(toastTimer);
+    t.className = 'db-toast show';
+    var color = type === 'error' ? ADMIN_DN : (type === 'success' ? ADMIN_OK : ADMIN_P);
+    t.style.borderLeftColor  = color;
+    dot.style.background     = color;
+    dot.innerHTML = type === 'error' ? '&#10007;' : '&#10003;';
+    txt.textContent = msg;
+    toastTimer = setTimeout(hideToast, 4000);
+}
+function hideToast(){ document.getElementById('db-toast').classList.remove('show'); }
+window.hideToast = hideToast;
+
+/* ── Password toggle ──────────────────────────────────────────── */
+document.getElementById('togglePwd').addEventListener('click', function(){
+    var p = document.getElementById('password');
+    var i = document.getElementById('eyeIcon');
+    var show = p.type === 'password';
+    p.type = show ? 'text' : 'password';
+    i.className = show ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
+});
+
+/* ── Terms modal ──────────────────────────────────────────────── */
+function openModal(e){ if(e) e.preventDefault(); document.getElementById('termsModal').classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(){ document.getElementById('termsModal').classList.remove('open'); document.body.style.overflow=''; }
+document.getElementById('openTerms').addEventListener('click', openModal);
+document.getElementById('openTerms2').addEventListener('click', openModal);
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('declineTerms').addEventListener('click', closeModal);
+document.getElementById('acceptTerms').addEventListener('click', function(){
+    document.getElementById('termsCheck').checked = true;
+    document.getElementById('termsBox').classList.remove('error');
+    closeModal();
+    showToast('success', 'Terms accepted!');
+});
+document.getElementById('termsModal').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+document.getElementById('termsCheck').addEventListener('change', function(){
+    if(this.checked) document.getElementById('termsBox').classList.remove('error');
+});
+
+/* ── Field state helper ───────────────────────────────────────── */
+var _reqId = { phone:0 };
+
+function setField(id, state, msg){
+    var inp = document.getElementById(id);
+    var st  = document.getElementById('st-'+id);
+    var ms  = document.getElementById('msg-'+id);
+    if(!inp) return;
+    inp.classList.remove('f-valid','f-invalid','f-checking');
+    if(st){ st.style.display='none'; st.innerHTML=''; }
+    if(ms){ ms.className='f-msg'; ms.innerHTML=''; }
+
+    if(state==='valid'){
+        inp.classList.add('f-valid');
+        if(st){ st.innerHTML='<i class="fa-solid fa-circle-check" style="color:var(--OK)"></i>'; st.style.display='block'; }
+        if(ms&&msg){ ms.innerHTML='<i class="fa-solid fa-circle-check"></i> '+msg; ms.className='f-msg show ok'; }
+    } else if(state==='invalid'){
+        inp.classList.add('f-invalid');
+        if(st){ st.innerHTML='<i class="fa-solid fa-circle-xmark" style="color:var(--DN)"></i>'; st.style.display='block'; }
+        if(ms&&msg){ ms.innerHTML='<i class="fa-solid fa-circle-xmark"></i> '+msg; ms.className='f-msg show err'; }
+    } else if(state==='checking'){
+        inp.classList.add('f-checking');
+        if(st){ st.innerHTML='<i class="fa-solid fa-spinner spin-anim" style="color:var(--WN)"></i>'; st.style.display='block'; }
+        if(ms&&msg){ ms.innerHTML='<i class="fa-solid fa-spinner spin-anim"></i> '+msg; ms.className='f-msg show chk'; }
+    }
+}
+
+function checkAvailability(field, value){
+    var myId = ++_reqId[field];
+    setField(field, 'checking', 'Checking…');
+    fetch('check_availability.php', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:'field='+encodeURIComponent(field)+'&value='+encodeURIComponent(value)
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        if(_reqId[field]!==myId) return;
+        if(data.available===true)       setField(field,'valid',data.message);
+        else if(data.available===false) setField(field,'invalid',data.message);
+        else setField(field,'','');
+    })
+    .catch(function(){ if(_reqId[field]===myId) setField(field,'',''); });
+}
+
+function debounce(fn, ms){ var t; return function(){ var a=arguments; clearTimeout(t); t=setTimeout(function(){ fn.apply(null,a); }, ms); }; }
+
+function badPhone(v){ if(!v) return null; var d=v.replace(/\D/g,''); return(d.length>=9&&d.length<=15)?null:'Enter a valid phone (9–15 digits)'; }
+
+var debouncedPhone = debounce(function(v){ checkAvailability('phone',v); }, 650);
+
+/* Username — local only */
+document.getElementById('username').addEventListener('input', function(){
+    var v=this.value.trim();
+    if(!v){ setField('username','',''); return; }
+    if(v.length<3){ setField('username','invalid','At least 3 characters'); return; }
+    if(v.length>40){ setField('username','invalid','Max 40 characters'); return; }
+    setField('username','valid','Looks good');
+});
+document.getElementById('username').addEventListener('blur', function(){
+    var v=this.value.trim();
+    if(!v){ setField('username','invalid','Username is required'); return; }
+    if(v.length<3){ setField('username','invalid','At least 3 characters'); return; }
+    setField('username','valid','');
+});
+
+/* Phone */
+document.getElementById('phone').addEventListener('input', function(){
+    var v=this.value.trim(); if(!v){ setField('phone','',''); return; }
+    var err=badPhone(v); if(err){ setField('phone','invalid',err); return; }
+    debouncedPhone(v);
+});
+document.getElementById('phone').addEventListener('blur', function(){
+    var v=this.value.trim(); if(!v){ setField('phone','invalid','Phone is required'); return; }
+    var err=badPhone(v); if(err){ setField('phone','invalid',err); return; }
+    checkAvailability('phone',v);
+});
+
+/* Password */
+document.getElementById('password').addEventListener('input', function(){
+    var v=this.value; if(!v){ setField('password','',''); return; }
+    if(v.length<6){ setField('password','invalid','At least 6 characters'); return; }
+    if(v.length>128){ setField('password','invalid','Too long (max 128)'); return; }
+    setField('password','valid','');
+});
+document.getElementById('password').addEventListener('blur', function(){
+    var v=this.value; if(!v){ setField('password','invalid','Password is required'); return; }
+    if(v.length<6){ setField('password','invalid','At least 6 characters'); return; }
+    setField('password','valid','');
+});
+
+/* Submit gate */
+document.getElementById('registerForm').addEventListener('submit', function(e){
+    var username = document.getElementById('username').value.trim();
+    var phone    = document.getElementById('phone').value.trim();
+    var country  = document.getElementById('country').value;
+    var password = document.getElementById('password').value;
+    var terms    = document.getElementById('termsCheck').checked;
+
+    if(document.querySelector('.f-checking')){ e.preventDefault(); showToast('error','Still checking — please wait a moment'); return; }
+    if(document.querySelector('.f-invalid')) { e.preventDefault(); showToast('error','Please fix the highlighted fields first'); return; }
+    if(!username||username.length<3)  { e.preventDefault(); setField('username','invalid','At least 3 characters'); showToast('error','Username must be at least 3 characters'); return; }
+    if(!phone||phone.replace(/\D/g,'').length<9){ e.preventDefault(); setField('phone','invalid','Valid phone required'); showToast('error','Please enter a valid phone number'); return; }
+    if(!country){ e.preventDefault(); showToast('error','Please select your country'); return; }
+    if(!password||password.length<6) { e.preventDefault(); setField('password','invalid','At least 6 characters'); showToast('error','Password must be at least 6 characters'); return; }
+    if(!terms){
+        e.preventDefault();
+        document.getElementById('termsBox').classList.add('error');
+        showToast('error','Please accept the Terms of Service');
+        document.getElementById('termsBox').scrollIntoView({behavior:'smooth',block:'center'});
+        return;
+    }
+    var btn = document.getElementById('submitBtn');
+    btn.classList.add('loading'); btn.disabled = true;
+});
+
+/* Show first server error as toast */
+</script>
+
+
+</body></html>

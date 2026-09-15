@@ -1,0 +1,540 @@
+<html lang="en" data-theme="dark"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — Fanyakazi</title>
+<link rel="stylesheet" href="../styles/all.min.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Fanyakazi — Login Page
+    Fanyakazi Theme · Light/Dark Mode · Fully Responsive
+    Matches the Fanyakazi member experience
+═══════════════════════════════════════════════════════════════ */
+
+/* ── FANYAKAZI THEME VARIABLES ── */
+:root {
+    --P:   #D90000;
+    --OK:  #8DB355;
+    --WN:  #FFEA93;
+    --DN:  #D90000;
+    --Pr:  217,0,0;
+    --hh:  52px;
+}
+
+/* ── DARK MODE tokens ── */
+:root, [data-theme="dark"] {
+    --bg1:   #07060f;
+    --bg2:   #0e0c1a;
+    --bg3:   #141228;
+    --bdr:   rgba(255,255,255,0.07);
+    --bdr-p: rgba(var(--Pr),0.22);
+    --txt:   rgba(255,255,255,0.90);
+    --txt2:  rgba(255,255,255,0.50);
+    --txt3:  rgba(255,255,255,0.22);
+    --P-bg:  rgba(var(--Pr),0.10);
+    --OK-bg: rgba(34,197,94,0.10);
+    --WN-bg: rgba(245,158,11,0.10);
+    --DN-bg: rgba(239,68,68,0.12);
+    --card:  #0e0c1a;
+    --card2: #141228;
+    --shadow:0 4px 24px rgba(0,0,0,0.5);
+    --input-bg:    rgba(255,255,255,0.05);
+    --input-bdr:   rgba(255,255,255,0.12);
+    color-scheme: dark;
+}
+
+/* ── LIGHT MODE tokens ── */
+[data-theme="light"] {
+    --bg1:   #f4f4f6;
+    --bg2:   #ffffff;
+    --bg3:   #f4f4f6;
+    --bdr:   rgba(0,0,0,0.09);
+    --bdr-p: rgba(var(--Pr),0.30);
+    --txt:   #111118;
+    --txt2:  #5a5a72;
+    --txt3:  #9898b0;
+    --P-bg:  rgba(var(--Pr),0.08);
+    --OK-bg: rgba(22,163,74,0.08);
+    --WN-bg: rgba(180,120,0,0.08);
+    --DN-bg: rgba(200,30,80,0.08);
+    --card:  #ffffff;
+    --card2: #f4f4f6;
+    --shadow:0 2px 16px rgba(0,0,0,0.08);
+    --input-bg:    rgba(0,0,0,0.03);
+    --input-bdr:   rgba(0,0,0,0.12);
+    color-scheme: light;
+}
+
+/* ── RESET ── */
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body {
+    font-family: system-ui,-apple-system,'Segoe UI',sans-serif;
+    font-size: 13px;
+    background: var(--bg1);
+    color: var(--txt);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 14px 40px;
+    position: relative;
+    overflow-x: hidden;
+    transition: background .25s, color .25s;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(var(--Pr),.25); border-radius: 4px; }
+
+/* ── ANIMATED BACKGROUND GRID (dark only) ── */
+[data-theme="dark"] body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+        linear-gradient(rgba(var(--Pr),.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--Pr),.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+    animation: gridPulse 8s ease-in-out infinite alternate;
+}
+@keyframes gridPulse { from { opacity:.4 } to { opacity:.9 } }
+
+/* ── GLOW ORBS ── */
+[data-theme="dark"] body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(ellipse 60% 40% at 20% 20%, rgba(var(--Pr),.07) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 80% 75%, rgba(var(--Pr),.05) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 40% at 50% 100%, rgba(var(--Pr),.04) 0%, transparent 60%);
+}
+
+/* ── THEME TOGGLE (top-right fixed) ── */
+.theme-btn {
+    position: fixed; top: 12px; right: 12px; z-index: 999;
+    width: 36px; height: 36px; border-radius: 9px;
+    background: var(--card); border: 1px solid var(--bdr);
+    cursor: pointer; color: var(--txt2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; transition: all .18s;
+}
+.theme-btn:hover { color: var(--P); border-color: var(--bdr-p); background: var(--P-bg); }
+
+/* ── CARD ── */
+.card {
+    position: relative; z-index: 10;
+    background: var(--card);
+    border: 1px solid var(--bdr);
+    border-radius: 18px;
+    padding: 24px 22px 20px;
+    width: 100%; max-width: 400px;
+    box-shadow: var(--shadow);
+    transition: background .25s, border-color .25s;
+    animation: cardIn .5s cubic-bezier(.22,1,.36,1) both;
+}
+[data-theme="dark"] .card { border-color: rgba(var(--Pr),.14); }
+@keyframes cardIn {
+    from { opacity:0; transform: translateY(18px); }
+    to   { opacity:1; transform: translateY(0); }
+}
+
+/* ── BRAND ROW ── */
+.brand-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+}
+.brand-ring {
+    width: 36px; height: 36px; flex-shrink: 0;
+    border-radius: 50%;
+    border: 2px solid var(--P);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 12px rgba(var(--Pr),.3);
+    animation: spin 8s linear infinite;
+}
+@keyframes spin { to { filter: hue-rotate(360deg); } }
+.brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--P); }
+.brand-logo-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.brand-text { flex: 1; min-width: 0; }
+.brand-name { font-size: 15px; font-weight: 800; color: var(--txt); letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-sub  { font-size: 10px; color: var(--txt2); font-weight: 600; letter-spacing: .5px; margin-top: 1px; }
+
+/* ── DIVIDER ── */
+.brand-divider {
+    height: 1px; margin: 0 0 16px;
+    background: linear-gradient(90deg, transparent, rgba(var(--Pr),.35), transparent);
+}
+
+/* ── SECTION LABEL (matches dashboard .sec-lbl) ── */
+.sec-lbl {
+    font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--P); opacity: .7; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 8px;
+}
+.sec-lbl::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(var(--Pr),.3), transparent); }
+
+/* ── LOGIN TIP ── */
+.login-tip {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--P-bg);
+    border: 1px solid rgba(var(--Pr),.18);
+    border-radius: 8px; padding: 7px 10px;
+    margin-bottom: 14px;
+    font-size: 11px; color: var(--txt2); line-height: 1.5;
+}
+.login-tip i { font-size: 11px; color: var(--P); flex-shrink: 0; }
+.login-tip strong { color: var(--txt); font-weight: 700; }
+
+/* ── ALERTS ── */
+.alert {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 9px 11px; border-radius: 9px;
+    font-size: 11.5px; font-weight: 500; margin-bottom: 12px;
+    line-height: 1.5;
+}
+.alert-error   { background: var(--DN-bg); color: var(--DN); border: 1px solid rgba(239,68,68,.22); }
+.alert-warning { background: var(--WN-bg); color: var(--WN); border: 1px solid rgba(245,158,11,.22); }
+.alert-success { background: var(--OK-bg); color: var(--OK); border: 1px solid rgba(34,197,94,.22); }
+.alert-info    { background: var(--P-bg);  color: var(--P);  border: 1px solid rgba(var(--Pr),.22); }
+.alert i { font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── FORM FIELDS ── */
+.field { margin-bottom: 12px; }
+
+.field-lbl {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 5px;
+}
+.field-lbl label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--txt2);
+}
+.forgot-link {
+    font-size: 10.5px; color: var(--P); font-weight: 600;
+    text-decoration: none; opacity: .85; transition: opacity .15s;
+}
+.forgot-link:hover { opacity: 1; }
+
+.input-wrap { position: relative; }
+
+input[type="text"],
+input[type="password"],
+input[type="tel"],
+input[type="email"] {
+    width: 100%; height: 42px;
+    padding: 0 40px 0 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-bdr);
+    border-radius: 9px;
+    font-family: inherit; font-size: 13px;
+    color: var(--txt);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    appearance: none;
+}
+input::placeholder { color: var(--txt3); font-size: 12px; }
+input:focus {
+    border-color: var(--P);
+    box-shadow: 0 0 0 3px rgba(var(--Pr),.14);
+    background: var(--P-bg);
+}
+input.err { border-color: var(--DN); background: var(--DN-bg); }
+input.err:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
+
+/* Input icon (left) */
+.input-ico {
+    position: absolute; left: 11px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px; color: var(--txt3); pointer-events: none;
+    transition: color .15s;
+}
+input[type="text"]:focus ~ .input-ico,
+input[type="tel"]:focus ~ .input-ico,
+input[type="password"]:focus ~ .input-ico,
+input:focus + .input-ico { color: var(--P); }
+
+/* Adjust padding for icon */
+.has-ico input { padding-left: 34px; }
+
+/* Eye toggle */
+.toggle-pwd {
+    position: absolute; right: 11px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--txt3); font-size: 12px;
+    transition: color .15s; padding: 2px;
+}
+.toggle-pwd:hover { color: var(--P); }
+
+/* ── REMEMBER ROW ── */
+.remember-row {
+    display: flex; align-items: center; gap: 7px;
+    margin: 8px 0 14px;
+}
+.remember-row input[type="checkbox"] {
+    width: 14px; height: 14px;
+    accent-color: var(--P); cursor: pointer; flex-shrink: 0;
+}
+.remember-row label {
+    font-size: 11px; color: var(--txt2); cursor: pointer;
+    font-weight: 500; letter-spacing: 0;
+}
+
+/* ── SUBMIT BUTTON (matches dashboard .copy-btn) ── */
+.btn-submit {
+    width: 100%; height: 44px;
+    background: var(--P); color: #fff;
+    border: none; border-radius: 10px;
+    font-family: inherit; font-size: 14px; font-weight: 800;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    letter-spacing: .2px;
+    box-shadow: 0 4px 18px rgba(var(--Pr),.35);
+    transition: filter .18s, transform .18s, box-shadow .18s;
+}
+.btn-submit:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 22px rgba(var(--Pr),.45);
+}
+.btn-submit:active { transform: translateY(0); }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+[data-theme="light"] .btn-submit { color: #fff; }
+
+/* Loading spinner */
+.spinner {
+    display: none; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+    border-radius: 50%; animation: spinnerSpin .6s linear infinite;
+}
+.btn-submit.loading .btn-txt { display: none; }
+.btn-submit.loading .spinner { display: block; }
+@keyframes spinnerSpin { to { transform: rotate(360deg); } }
+
+/* ── DIVIDER ── */
+.or-divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 16px 0;
+}
+.or-line { flex: 1; height: 1px; background: var(--bdr); }
+.or-text  { font-size: 10px; color: var(--txt3); font-weight: 600; letter-spacing: .5px; text-transform: uppercase; }
+
+/* ── SOCIAL BUTTONS ── */
+.social-row { display: flex; gap: 8px; margin-bottom: 4px; }
+.social-btn {
+    flex: 1; height: 38px; border-radius: 9px;
+    border: 1px solid var(--bdr);
+    background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--txt2); font-size: 14px;
+    cursor: pointer; text-decoration: none;
+    transition: border-color .15s, color .15s, background .15s;
+}
+.social-btn:hover {
+    border-color: rgba(var(--Pr),.3);
+    color: var(--P);
+    background: var(--P-bg);
+}
+
+/* ── CARD FOOTER ── */
+.card-footer {
+    text-align: center; margin-top: 14px;
+    font-size: 12px; color: var(--txt2);
+}
+.card-footer a { color: var(--P); text-decoration: none; font-weight: 700; }
+.card-footer a:hover { text-decoration: underline; }
+
+.copy-line {
+    text-align: center; margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--bdr);
+    font-size: 9.5px; color: var(--txt3);
+}
+
+/* ── ANIMATIONS ── */
+.brand-row  { animation: fadeUp .4s ease both .05s; }
+.login-tip  { animation: fadeUp .4s ease both .10s; }
+.alert      { animation: fadeUp .3s ease both; }
+form > .field:nth-child(1) { animation: fadeUp .4s ease both .12s; }
+form > .field:nth-child(2) { animation: fadeUp .4s ease both .16s; }
+.remember-row { animation: fadeUp .4s ease both .20s; }
+.btn-submit { animation: fadeUp .4s ease both .23s; }
+.or-divider { animation: fadeUp .4s ease both .27s; }
+.social-row { animation: fadeUp .4s ease both .30s; }
+.card-footer{ animation: fadeUp .4s ease both .33s; }
+@keyframes fadeUp {
+    from { opacity:0; transform:translateY(12px); }
+    to   { opacity:1; transform:translateY(0); }
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:420px) {
+    .card { padding: 20px 16px 18px; border-radius: 14px; }
+    .btn-submit { height: 42px; font-size: 13px; }
+}
+@media(max-width:360px) {
+    body { padding: 14px 10px; }
+    .card { padding: 16px 13px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Theme toggle -->
+<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle light/dark mode">
+    <i id="theme-ico" class="fa-solid fa-sun"></i>
+</button>
+
+<div class="card">
+
+    <!-- Brand row -->
+    <div class="brand-row">
+        <div class="brand-ring">
+                            <img class="brand-logo-img" src="../images/Gemini_Generated_Image_ax4xpuax4xpuax4x-removebg-preview.png" alt="Fanyakazi.com">
+                    </div>
+        <div class="brand-text">
+            <div class="brand-name">Fanyakazi</div>
+            <div class="brand-sub">Member Portal</div>
+        </div>
+    </div>
+
+    <div class="brand-divider"></div>
+
+    <!-- Section label -->
+    <div class="sec-lbl">Sign In</div>
+
+    <!-- Login tip -->
+    <div class="login-tip">
+        <i class="fa-solid fa-circle-info"></i>
+        Use your <strong>&#160;phone number&#160;</strong> and password to sign in
+    </div>
+
+    <!-- Alerts -->
+    
+    
+    <!-- Form -->
+    <form method="POST" id="loginForm" autocomplete="on" novalidate>
+
+        <!-- Phone -->
+        <div class="field">
+            <div class="field-lbl">
+                <label for="phone">Phone Number</label>
+            </div>
+            <div class="input-wrap has-ico">
+                <input type="tel" id="phone" name="phone" value="" placeholder="07XXXXXXXX" autocomplete="username" inputmode="tel">
+                <i class="fa-solid fa-phone input-ico"></i>
+            </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+            <div class="field-lbl">
+                <label for="password">Password</label>
+                <a href="../pages/forgot-password.php.html" class="forgot-link">Forgot password?</a>
+            </div>
+            <div class="input-wrap has-ico">
+                <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:38px">
+                <i class="fa-solid fa-lock input-ico"></i>
+                <button type="button" class="toggle-pwd" id="togglePwd" aria-label="Show password">
+                    <i class="fa-regular fa-eye-slash" id="eyeIcon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Remember me -->
+        <div class="remember-row">
+            <input type="checkbox" id="remember" name="remember">
+            <label for="remember">Keep me signed in</label>
+        </div>
+
+        <button type="submit" class="btn-submit" id="loginBtn">
+            <i class="fa-solid fa-right-to-bracket" style="font-size:13px"></i>
+            <span class="btn-txt">Sign In</span>
+            <div class="spinner"></div>
+        </button>
+
+    </form>
+
+    <!-- Divider -->
+    <div class="or-divider">
+        <span class="or-line"></span>
+        <span class="or-text">or</span>
+        <span class="or-line"></span>
+    </div>
+
+    <!-- Social -->
+    <div class="social-row">
+        <a href="#" class="social-btn" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" class="social-btn" aria-label="X / Twitter"><i class="fab fa-x-twitter"></i></a>
+        <a href="#" class="social-btn" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+    </div>
+
+    <div class="card-footer">
+        Don't have an account? <a href="../pages/register.php.html">Sign Up Free</a>
+    </div>
+
+    <p class="copy-line">© 2026 Fanyakazi. All rights reserved.</p>
+
+</div><!-- /card -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../scripts/supabase-config.js"></script>
+<script src="../scripts/supabase-auth.js"></script>
+<script>
+/* ── Theme engine ────────────────────────────────────────────── */
+(function(){
+    var saved = localStorage.getItem('ev_theme') || 'dark';
+    applyTheme(saved, false);
+})();
+
+function applyTheme(t, animate){
+    var html = document.documentElement;
+    if (animate){ html.style.transition = 'background .25s,color .25s'; }
+    html.setAttribute('data-theme', t);
+    localStorage.setItem('ev_theme', t);
+    var ico = document.getElementById('theme-ico');
+    if (ico) ico.className = t === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+}
+window.toggleTheme = function(){
+    var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(cur === 'dark' ? 'light' : 'dark', true);
+};
+
+/* ── Password toggle ─────────────────────────────────────────── */
+document.getElementById('togglePwd').addEventListener('click', function(){
+    var p = document.getElementById('password');
+    var i = document.getElementById('eyeIcon');
+    var show = p.type === 'password';
+    p.type = show ? 'text' : 'password';
+    i.className = show ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
+    this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+});
+
+/* ── Form submit loading state ───────────────────────────────── */
+document.getElementById('loginForm').addEventListener('submit', function(e){
+    var u = document.getElementById('phone').value.trim();
+    var p = document.getElementById('password').value.trim();
+    if (!u || !p){ e.preventDefault(); return; }
+    var btn = document.getElementById('loginBtn');
+    btn.classList.add('loading');
+    btn.disabled = true;
+});
+
+/* ── Focus first error field ─────────────────────────────────── */
+var err = document.querySelector('input.err');
+if (err) err.focus();
+
+/* ── Input icon color sync ───────────────────────────────────── */
+document.querySelectorAll('.has-ico input').forEach(function(inp){
+    inp.addEventListener('focus', function(){
+        var ico = this.parentElement.querySelector('.input-ico');
+        if (ico) ico.style.color = 'var(--P)';
+    });
+    inp.addEventListener('blur', function(){
+        var ico = this.parentElement.querySelector('.input-ico');
+        if (ico) ico.style.color = 'var(--txt3)';
+    });
+});
+</script>
+
+
+</body></html>

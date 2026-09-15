@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payment confirmation | VistaHub</title>
+  <style>body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;background:#090909;color:#fff;margin:0}.box{text-align:center;max-width:420px;padding:32px}.status{font-size:3rem;color:#8DB355}p{color:#bbb}a{color:#FFEA93}</style>
+</head>
+<body>
+  <main class="box">
+    <div class="status" id="status">...</div>
+    <h1 id="title">Confirming payment</h1>
+    <p id="message">We are checking the transaction with Paystack.</p>
+    <a href="./index.html">Return home</a>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./scripts/supabase-config.js"></script>
+  <script src="./scripts/supabase-auth.js"></script>
+  <script>
+    (async function () {
+      var reference = new URLSearchParams(window.location.search).get('reference');
+      var result = window.vistahubSupabase && await window.vistahubSupabase.auth.getSession();
+      var session = result && result.data.session;
+      if (!reference || !session) throw new Error('Your session has expired. Please sign in again.');
+      var response = await fetch((window.VISTAHUB_CONFIG.apiBaseUrl || '') + '/api/paystack/verify/' + encodeURIComponent(reference), {
+        headers: { Authorization: 'Bearer ' + session.access_token }
+      });
+      var data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Payment could not be confirmed.');
+      document.getElementById('status').textContent = '✓';
+      document.getElementById('title').textContent = 'Payment confirmed';
+      document.getElementById('message').textContent = 'Your program access is now active.';
+    })().catch(function (error) {
+      document.getElementById('status').textContent = '!';
+      document.getElementById('title').textContent = 'Payment not confirmed';
+      document.getElementById('message').textContent = error.message;
+    });
+  </script>
+</body>
+</html>
