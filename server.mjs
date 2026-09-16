@@ -121,4 +121,8 @@ app.get('/api/paystack/verify/:reference', async (req, res) => {
   }
 });
 
-app.listen(port, () => console.log(`Fanyakazi API listening on http://localhost:${port}`));
+if (process.env.VERCEL !== '1') {
+  app.listen(port, () => console.log(`Fanyakazi API listening on http://localhost:${port}`));
+}
+
+export default app;
