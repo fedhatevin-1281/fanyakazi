@@ -3,7 +3,6 @@
   "builds": [
     { "src": "server.mjs", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "admin-dashboard.html", "use": "@vercel/static" },
     { "src": "payment-callback.html", "use": "@vercel/static" },
     { "src": "pages/**", "use": "@vercel/static" },
     { "src": "user/**", "use": "@vercel/static" },
