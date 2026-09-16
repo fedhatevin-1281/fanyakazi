@@ -411,6 +411,52 @@ input.f-invalid:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
 }
 .btn-decline:hover { border-color: var(--bdr-p); color: var(--txt); }
 
+/* ── SIGNUP SUCCESS ── */
+.success-overlay {
+    position: fixed; inset: 0; z-index: 10000; display: none;
+    align-items: center; justify-content: center; padding: 20px;
+    background: rgba(0,0,0,.64); backdrop-filter: blur(8px);
+}
+.success-overlay.open { display: flex; }
+.success-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.confetti-piece {
+    position: absolute; top: -24px; width: 9px; height: 18px; border-radius: 2px;
+    background: var(--P); animation: confettiFall 2.8s linear infinite;
+}
+.confetti-piece:nth-child(3n) { background: #FFEA93; }
+.confetti-piece:nth-child(3n+1) { background: #8DB355; }
+.confetti-piece:nth-child(4n) { width: 7px; height: 12px; border-radius: 50%; }
+.confetti-piece:nth-child(1) { left: 8%; animation-delay: -.2s; }
+.confetti-piece:nth-child(2) { left: 19%; animation-delay: -1.2s; }
+.confetti-piece:nth-child(3) { left: 31%; animation-delay: -.7s; }
+.confetti-piece:nth-child(4) { left: 44%; animation-delay: -1.8s; }
+.confetti-piece:nth-child(5) { left: 57%; animation-delay: -.5s; }
+.confetti-piece:nth-child(6) { left: 69%; animation-delay: -1.5s; }
+.confetti-piece:nth-child(7) { left: 81%; animation-delay: -.9s; }
+.confetti-piece:nth-child(8) { left: 92%; animation-delay: -2.1s; }
+@keyframes confettiFall {
+    0% { transform: translate3d(0,-10vh,0) rotate(0deg); opacity: 0; }
+    12% { opacity: 1; }
+    100% { transform: translate3d(42px,110vh,0) rotate(620deg); opacity: 0; }
+}
+.success-box {
+    position: relative; width: min(100%, 390px); padding: 34px 26px 28px;
+    text-align: center; color: var(--txt); border: 1px solid rgba(255,234,147,.28);
+    border-radius: 22px; background: linear-gradient(145deg, rgba(255,255,255,.18), rgba(217,0,0,.13));
+    box-shadow: 0 24px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.18);
+    backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+    animation: successPop .45s cubic-bezier(.22,1.3,.36,1) both;
+}
+.success-icon {
+    width: 62px; height: 62px; margin: 0 auto 16px; display: grid; place-items: center;
+    border-radius: 50%; background: #8DB355; color: #101500; font-size: 28px;
+    box-shadow: 0 0 0 9px rgba(141,179,85,.14), 0 12px 30px rgba(141,179,85,.26);
+}
+.success-box h2 { margin-bottom: 8px; color: #FFEA93; font-size: 23px; }
+.success-box p { color: rgba(255,255,255,.78); font-size: 13px; line-height: 1.6; }
+@keyframes successPop { from { opacity: 0; transform: scale(.82) translateY(14px); } to { opacity: 1; transform: none; } }
+@media(prefers-reduced-motion: reduce) { .confetti-piece { animation: none; opacity: .8; } .success-box { animation: none; } }
+
 /* ── Animations ── */
 @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 .brand-row       { animation: fadeUp .4s ease both .05s; }
@@ -599,6 +645,18 @@ input.f-invalid:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
     <button class="t-cls" onclick="hideToast()">×</button>
 </div>
 
+<div class="success-overlay" id="signupSuccess" role="dialog" aria-modal="true" aria-labelledby="signupSuccessTitle">
+    <div class="success-confetti" aria-hidden="true">
+        <span class="confetti-piece"></span><span class="confetti-piece"></span><span class="confetti-piece"></span><span class="confetti-piece"></span>
+        <span class="confetti-piece"></span><span class="confetti-piece"></span><span class="confetti-piece"></span><span class="confetti-piece"></span>
+    </div>
+    <section class="success-box">
+        <div class="success-icon"><i class="fa-solid fa-check"></i></div>
+        <h2 id="signupSuccessTitle">Signup successful</h2>
+        <p id="signupSuccessMessage">Check your email to verify your account, then sign in to continue.</p>
+    </section>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../scripts/supabase-config.js"></script>
 <script src="../scripts/supabase-auth.js"></script>
@@ -642,6 +700,16 @@ function showToast(type, msg){
 }
 function hideToast(){ document.getElementById('db-toast').classList.remove('show'); }
 window.hideToast = hideToast;
+
+window.showSignupSuccess = function(hasSession){
+    var overlay = document.getElementById('signupSuccess');
+    var message = document.getElementById('signupSuccessMessage');
+    if (!overlay) return;
+    message.textContent = hasSession
+        ? 'Your account is ready. Welcome to Fanyakazi.'
+        : 'Check your email to verify your account, then sign in to continue.';
+    overlay.classList.add('open');
+};
 
 /* ── Password toggle ──────────────────────────────────────────── */
 document.getElementById('togglePwd').addEventListener('click', function(){

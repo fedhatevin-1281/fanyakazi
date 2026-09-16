@@ -37,6 +37,14 @@
     else window.alert(message);
   }
 
+  function showSignupSuccess(hasSession) {
+    if (window.showSignupSuccess) {
+      window.showSignupSuccess(hasSession);
+      return;
+    }
+    window.alert(hasSession ? 'Account created successfully.' : 'Check your email to verify your account.');
+  }
+
   function setLoading(button, loading) {
     if (!button) return;
     button.classList.toggle('loading', loading);
@@ -112,8 +120,8 @@
         }
       });
       if (result.error) return showToast(messageFor(result.error));
-      if (!result.data.session) return showToast('Check your email for the Supabase confirmation link, then sign in.');
-      window.location.href = '../index.html';
+      showSignupSuccess(Boolean(result.data.session));
+      if (result.data.session) setTimeout(function () { window.location.href = '../index.html'; }, 1800);
     } catch (error) {
       showToast(messageFor(error));
     } finally {
