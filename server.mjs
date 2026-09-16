@@ -152,7 +152,8 @@ app.get('/api/admin/overview', async (req, res) => {
     if (failure) throw failure.error;
     const transactions = transactionsResult.data || [];
     const successful = transactions.filter((transaction) => transaction.status === 'success');
-    const revenue = successful.reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
+    const paid = successful.filter((transaction) => transaction.type !== 'admin_grant');
+    const revenue = paid.reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
     res.json({
       users: usersResult.data || [],
       referrals: referralsResult.data || [],
@@ -161,12 +162,45 @@ app.get('/api/admin/overview', async (req, res) => {
       metrics: {
         users: usersResult.data?.length || 0,
         referrals: referralsResult.data?.length || 0,
-        successfulPayments: successful.length,
+        successfulPayments: paid.length,
         revenue
       }
     });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Unable to load admin activity' });
+  }
+});
+
+app.post('/api/admin/grant-access', async (req, res) => {
+  try {
+    const admin = await authenticatedAdmin(req, res);
+    if (!admin) return;
+    const { userId, programSlug } = req.body || {};
+    if (!userId || !programSlug) return res.status(400).json({ error: 'A user and program are required' });
+    const { data: program, error: programError } = await supabaseAdmin
+      .from('programs').select('id, slug, unlock_amount').eq('slug', programSlug).eq('is_active', true).single();
+    if (programError || !program) return res.status(400).json({ error: 'Program not found' });
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles').select('id').eq('id', userId).single();
+    if (profileError || !profile) return res.status(404).json({ error: 'User not found' });
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from('user_programs').select('id').eq('user_id', userId).eq('program_id', program.id).maybeSingle();
+    if (existingError) throw existingError;
+    if (existing) return res.json({ status: 'already_active' });
+    const reference = `admin_grant_${userId}_${program.id}`;
+    const { data: transaction, error: transactionError } = await supabaseAdmin.from('transactions').insert({
+      user_id: userId, program_id: program.id, type: 'admin_grant', amount: Number(program.unlock_amount),
+      currency: 'KES', status: 'success', paystack_reference: reference,
+      customer_email: null, paid_at: new Date().toISOString(), metadata: { granted_by: admin.id }
+    }).select('id').single();
+    if (transactionError) throw transactionError;
+    const { error: unlockError } = await supabaseAdmin.from('user_programs').insert({
+      user_id: userId, program_id: program.id, transaction_id: transaction.id
+    });
+    if (unlockError) throw unlockError;
+    res.json({ status: 'granted', programSlug });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to grant access' });
   }
 });
 

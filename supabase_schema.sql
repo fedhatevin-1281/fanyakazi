@@ -278,3 +278,12 @@ on conflict (slug) do nothing;
 -- 2. Webhook processing.
 -- 3. Inserting successful transactions and unlocks.
 -- 4. Updating wallets and writing audit logs.
+
+-- Admin-granted access migration. Run this block after the original schema.
+alter table public.transactions drop constraint if exists transactions_type_check;
+alter table public.transactions add constraint transactions_type_check
+  check (type in ('registration', 'program_unlock', 'admin_grant'));
+
+alter table public.transactions drop constraint if exists transaction_program_required;
+alter table public.transactions add constraint transaction_program_required
+  check (type in ('program_unlock', 'admin_grant') or program_id is not null);
