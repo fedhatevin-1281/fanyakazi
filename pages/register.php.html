@@ -662,8 +662,6 @@ document.getElementById('termsCheck').addEventListener('change', function(){
 });
 
 /* ── Field state helper ───────────────────────────────────────── */
-var _reqId = { phone:0 };
-
 function setField(id, state, msg){
     var inp = document.getElementById(id);
     var st  = document.getElementById('st-'+id);
@@ -688,29 +686,7 @@ function setField(id, state, msg){
     }
 }
 
-function checkAvailability(field, value){
-    var myId = ++_reqId[field];
-    setField(field, 'checking', 'Checking…');
-    fetch('check_availability.php', {
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:'field='+encodeURIComponent(field)+'&value='+encodeURIComponent(value)
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-        if(_reqId[field]!==myId) return;
-        if(data.available===true)       setField(field,'valid',data.message);
-        else if(data.available===false) setField(field,'invalid',data.message);
-        else setField(field,'','');
-    })
-    .catch(function(){ if(_reqId[field]===myId) setField(field,'',''); });
-}
-
-function debounce(fn, ms){ var t; return function(){ var a=arguments; clearTimeout(t); t=setTimeout(function(){ fn.apply(null,a); }, ms); }; }
-
 function badPhone(v){ if(!v) return null; var d=v.replace(/\D/g,''); return(d.length>=9&&d.length<=15)?null:'Enter a valid phone (9–15 digits)'; }
-
-var debouncedPhone = debounce(function(v){ checkAvailability('phone',v); }, 650);
 
 /* Username — local only */
 document.getElementById('username').addEventListener('input', function(){
@@ -731,12 +707,12 @@ document.getElementById('username').addEventListener('blur', function(){
 document.getElementById('phone').addEventListener('input', function(){
     var v=this.value.trim(); if(!v){ setField('phone','',''); return; }
     var err=badPhone(v); if(err){ setField('phone','invalid',err); return; }
-    debouncedPhone(v);
+    setField('phone','valid','Looks good');
 });
 document.getElementById('phone').addEventListener('blur', function(){
     var v=this.value.trim(); if(!v){ setField('phone','invalid','Phone is required'); return; }
     var err=badPhone(v); if(err){ setField('phone','invalid',err); return; }
-    checkAvailability('phone',v);
+    setField('phone','valid','');
 });
 
 /* Password */
@@ -760,7 +736,6 @@ document.getElementById('registerForm').addEventListener('submit', function(e){
     var password = document.getElementById('password').value;
     var terms    = document.getElementById('termsCheck').checked;
 
-    if(document.querySelector('.f-checking')){ e.preventDefault(); showToast('error','Still checking — please wait a moment'); return; }
     if(document.querySelector('.f-invalid')) { e.preventDefault(); showToast('error','Please fix the highlighted fields first'); return; }
     if(!username||username.length<3)  { e.preventDefault(); setField('username','invalid','At least 3 characters'); showToast('error','Username must be at least 3 characters'); return; }
     if(!phone||phone.replace(/\D/g,'').length<9){ e.preventDefault(); setField('phone','invalid','Valid phone required'); showToast('error','Please enter a valid phone number'); return; }

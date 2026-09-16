@@ -1,8 +1,8 @@
 (function () {
-  var config = window.VISTAHUB_CONFIG || {};
+  var config = window.FANYAKAZI_CONFIG || {};
 
   window.startPaystackCheckout = async function (programSlug, amount) {
-    var supabaseClient = window.vistahubSupabase;
+    var supabaseClient = window.fanyakaziSupabase;
     if (!supabaseClient) throw new Error('Supabase is not configured.');
     var sessionResult = await supabaseClient.auth.getSession();
     var session = sessionResult.data.session;

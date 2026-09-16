@@ -4,7 +4,16 @@ import { createClient } from '@supabase/supabase-js';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'PAYSTACK_SECRET_KEY'];
+const missingEnv = requiredEnv.filter((name) => !process.env[name]);
+if (missingEnv.length) {
+  console.error(`Missing required environment variables: ${missingEnv.join(', ')}`);
+  process.exitCode = 1;
+}
+
+const supabaseAdmin = missingEnv.includes('SUPABASE_URL') || missingEnv.includes('SUPABASE_SERVICE_ROLE_KEY')
+  ? null
+  : createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false }
 });
 
@@ -12,6 +21,10 @@ app.use(express.json());
 app.use(express.static('.'));
 
 async function authenticatedUser(req, res) {
+  if (!supabaseAdmin) {
+    res.status(503).json({ error: 'Authentication service is not configured' });
+    return null;
+  }
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
   if (!token) {
     res.status(401).json({ error: 'Authentication required' });
@@ -26,6 +39,7 @@ async function authenticatedUser(req, res) {
 }
 
 async function paystackRequest(path, body) {
+  if (!process.env.PAYSTACK_SECRET_KEY) throw new Error('Payment service is not configured');
   const response = await fetch(`https://api.paystack.co/${path}`, {
     method: 'POST',
     headers: {
@@ -54,11 +68,11 @@ app.post('/api/paystack/initialize', async (req, res) => {
     }
     const reference = `vh_${user.id}_${Date.now()}`;
     const transaction = await paystackRequest('transaction/initialize', {
-      email: user.email || `${user.id}@users.vistahub.co.ke`,
+      email: user.email || `${user.id}@users.fanyakazi.co.ke`,
       amount: Math.round(Number(amount) * 100),
       currency: 'KES',
       reference,
-      callback_url: `${process.env.APP_URL}/payment-callback.html`,
+      callback_url: `${process.env.APP_URL || `http://localhost:${port}`}/payment-callback.html`,
       metadata: { user_id: user.id, program_id: program.id, program_slug: program.slug }
     });
     const { error: insertError } = await supabaseAdmin.from('transactions').insert({
@@ -107,4 +121,4 @@ app.get('/api/paystack/verify/:reference', async (req, res) => {
   }
 });
 
-app.listen(port, () => console.log(`VistaHub API listening on http://localhost:${port}`));
+app.listen(port, () => console.log(`Fanyakazi API listening on http://localhost:${port}`));

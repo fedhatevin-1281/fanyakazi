@@ -1,8 +1,8 @@
 {
-  "name": "vistahub.co.ke",
+  "name": "fanyakazi",
   "version": "1.0.0",
   "private": true,
-  "description": "VistaHub website",
+  "description": "Fanyakazi website",
   "scripts": {
     "dev": "vite",
     "start": "node server.mjs"
