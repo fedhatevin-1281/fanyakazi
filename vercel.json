@@ -14,6 +14,7 @@
   "routes": [
     { "src": "/api/(.*)", "dest": "/server.mjs" },
     { "src": "/admin", "dest": "/admin/login.html" },
+    { "src": "/admin/", "dest": "/admin/login.html" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
