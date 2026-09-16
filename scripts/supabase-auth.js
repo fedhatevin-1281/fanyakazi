@@ -18,10 +18,16 @@
     return /^\+\d{9,15}$/.test(phone) ? phone : '';
   }
 
+  function validEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim())
+      ? String(value).trim().toLowerCase()
+      : '';
+  }
+
   function messageFor(error) {
     if (!error) return 'Something went wrong. Please try again.';
-    if (/invalid login credentials/i.test(error.message)) return 'Phone number or password is incorrect.';
-    if (/already registered|already been registered/i.test(error.message)) return 'That phone number is already registered.';
+    if (/invalid login credentials/i.test(error.message)) return 'Email/phone or password is incorrect.';
+    if (/already registered|already been registered/i.test(error.message)) return 'That email or phone number is already registered.';
     return error.message || 'Something went wrong. Please try again.';
   }
 
@@ -54,13 +60,17 @@
   if (loginForm) loginForm.addEventListener('submit', async function (event) {
     event.preventDefault();
     if (!requireConfig()) return;
-    var phone = validPhone(readValue('phone'));
+    var identifier = readValue('phone');
     var password = readValue('password');
-    if (!phone || !password) return showToast('Enter a valid phone number and password.');
+    var email = validEmail(identifier);
+    var phone = email ? '' : validPhone(identifier);
+    if ((!email && !phone) || !password) return showToast('Enter a valid email or phone number and password.');
     var button = document.getElementById('loginBtn');
     setLoading(button, true);
     try {
-      var result = await client.auth.signInWithPassword({ phone: phone, password: password });
+      var result = await client.auth.signInWithPassword(email
+        ? { email: email, password: password }
+        : { phone: phone, password: password });
       if (result.error) return showToast(messageFor(result.error));
       window.location.href = '../index.html';
     } catch (error) {
@@ -75,10 +85,12 @@
     event.preventDefault();
     var terms = document.getElementById('termsCheck');
     var username = readValue('username');
+    var email = validEmail(readValue('email'));
     var phone = validPhone(readValue('phone'));
     var password = readValue('password');
     var country = readValue('country');
     if (username.length < 3 || username.length > 40) return showToast('Username must be 3 to 40 characters.');
+    if (!email) return showToast('Enter a valid email address.');
     if (!phone) return showToast('Enter a valid phone number.');
     if (password.length < 6 || password.length > 128) return showToast('Password must be 6 to 128 characters.');
     if (!country) return showToast('Select your country.');
@@ -88,18 +100,19 @@
     setLoading(button, true);
     try {
       var result = await client.auth.signUp({
-        phone: phone,
+        email: email,
         password: password,
         options: {
           data: {
             username: username,
             phone: phone,
+            email: email,
             country: country
           }
         }
       });
       if (result.error) return showToast(messageFor(result.error));
-      if (!result.data.session) return showToast('Check your phone for the Supabase verification code, then sign in.');
+      if (!result.data.session) return showToast('Check your email for the Supabase confirmation link, then sign in.');
       window.location.href = '../index.html';
     } catch (error) {
       showToast(messageFor(error));

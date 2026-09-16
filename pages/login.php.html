@@ -405,7 +405,7 @@ form > .field:nth-child(2) { animation: fadeUp .4s ease both .16s; }
     <!-- Login tip -->
     <div class="login-tip">
         <i class="fa-solid fa-circle-info"></i>
-        Use your <strong>&#160;phone number&#160;</strong> and password to sign in
+        Use your <strong>&#160;email or phone number&#160;</strong> and password to sign in
     </div>
 
     <!-- Alerts -->
@@ -414,14 +414,14 @@ form > .field:nth-child(2) { animation: fadeUp .4s ease both .16s; }
     <!-- Form -->
     <form method="POST" id="loginForm" autocomplete="on" novalidate>
 
-        <!-- Phone -->
+        <!-- Email or phone -->
         <div class="field">
             <div class="field-lbl">
-                <label for="phone">Phone Number</label>
+                <label for="phone">Email or Phone Number</label>
             </div>
             <div class="input-wrap has-ico">
-                <input type="tel" id="phone" name="phone" value="" placeholder="07XXXXXXXX" autocomplete="username" inputmode="tel">
-                <i class="fa-solid fa-phone input-ico"></i>
+                <input type="text" id="phone" name="phone" value="" placeholder="you@example.com or 07XXXXXXXX" autocomplete="username">
+                <i class="fa-solid fa-user input-ico"></i>
             </div>
         </div>
 
