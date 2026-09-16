@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -22,12 +23,16 @@ app.use(express.json());
 app.use(express.static('.'));
 
 app.get('/admin-dashboard', (req, res) => {
-  res.sendFile(fileURLToPath(new URL('./admin/index.html', import.meta.url)));
+  const dashboardPath = fileURLToPath(new URL('./admin/index.html', import.meta.url));
+  res.type('html').send(readFileSync(dashboardPath, 'utf8'));
 });
 
-app.get('/work/?', (req, res) => {
-  res.sendFile(fileURLToPath(new URL('./work/index.html', import.meta.url)));
-});
+const serveWorkHub = (req, res) => {
+  const workPath = fileURLToPath(new URL('./work/index.html', import.meta.url));
+  res.type('html').send(readFileSync(workPath, 'utf8'));
+};
+app.get('/work', serveWorkHub);
+app.get('/work/', serveWorkHub);
 
 async function authenticatedUser(req, res) {
   if (!supabaseAdmin) {
