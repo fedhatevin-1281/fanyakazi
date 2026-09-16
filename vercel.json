@@ -2,7 +2,12 @@
   "version": 2,
   "builds": [
     { "src": "server.mjs", "use": "@vercel/node" },
-    { "src": "**/*", "use": "@vercel/static" }
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "payment-callback.html", "use": "@vercel/static" },
+    { "src": "pages/**", "use": "@vercel/static" },
+    { "src": "scripts/**", "use": "@vercel/static" },
+    { "src": "styles/**", "use": "@vercel/static" },
+    { "src": "images/**", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/server.mjs" },
