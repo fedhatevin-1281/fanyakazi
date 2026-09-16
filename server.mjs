@@ -38,6 +38,18 @@ async function authenticatedUser(req, res) {
   return data.user;
 }
 
+async function authenticatedAdmin(req, res) {
+  const user = await authenticatedUser(req, res);
+  if (!user) return null;
+  const { data: profile, error } = await supabaseAdmin
+    .from('profiles').select('role, is_active').eq('id', user.id).single();
+  if (error || !profile || profile.role !== 'admin' || !profile.is_active) {
+    res.status(403).json({ error: 'Administrator access required' });
+    return null;
+  }
+  return user;
+}
+
 async function paystackRequest(path, body) {
   if (!process.env.PAYSTACK_SECRET_KEY) throw new Error('Payment service is not configured');
   const response = await fetch(`https://api.paystack.co/${path}`, {
@@ -118,6 +130,38 @@ app.get('/api/paystack/verify/:reference', async (req, res) => {
     res.json({ status: 'success', reference });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Unable to verify payment' });
+  }
+});
+
+app.get('/api/admin/overview', async (req, res) => {
+  try {
+    const user = await authenticatedAdmin(req, res);
+    if (!user) return;
+    const [usersResult, referralsResult, transactionsResult, programsResult] = await Promise.all([
+      supabaseAdmin.from('profiles').select('id, username, phone, country, role, is_active, created_at, referral_code').order('created_at', { ascending: false }).limit(100),
+      supabaseAdmin.from('referrals').select('id, referrer_id, referred_id, created_at').order('created_at', { ascending: false }).limit(100),
+      supabaseAdmin.from('transactions').select('id, user_id, program_id, amount, currency, status, type, paystack_reference, created_at, paid_at').order('created_at', { ascending: false }).limit(100),
+      supabaseAdmin.from('programs').select('id, name, slug, unlock_amount, is_active').order('name')
+    ]);
+    const failure = [usersResult, referralsResult, transactionsResult, programsResult].find((result) => result.error);
+    if (failure) throw failure.error;
+    const transactions = transactionsResult.data || [];
+    const successful = transactions.filter((transaction) => transaction.status === 'success');
+    const revenue = successful.reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
+    res.json({
+      users: usersResult.data || [],
+      referrals: referralsResult.data || [],
+      transactions,
+      programs: programsResult.data || [],
+      metrics: {
+        users: usersResult.data?.length || 0,
+        referrals: referralsResult.data?.length || 0,
+        successfulPayments: successful.length,
+        revenue
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to load admin activity' });
   }
 });
 

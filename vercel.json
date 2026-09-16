@@ -6,12 +6,14 @@
     { "src": "payment-callback.html", "use": "@vercel/static" },
     { "src": "pages/**", "use": "@vercel/static" },
     { "src": "user/**", "use": "@vercel/static" },
+    { "src": "admin/**", "use": "@vercel/static" },
     { "src": "scripts/**", "use": "@vercel/static" },
     { "src": "styles/**", "use": "@vercel/static" },
     { "src": "images/**", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/server.mjs" },
+    { "src": "/admin", "dest": "/admin/login.html" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
