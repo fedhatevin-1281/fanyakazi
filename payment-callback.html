@@ -11,7 +11,7 @@
     <div class="status" id="status">...</div>
     <h1 id="title">Confirming payment</h1>
     <p id="message">We are checking the transaction with Paystack.</p>
-    <a id="returnLink" href="./work/index.html">Open work hub</a>
+    <a id="returnLink" href="/work">Open work hub</a>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./scripts/supabase-config.js"></script>
@@ -30,7 +30,7 @@
       document.getElementById('status').textContent = '✓';
       document.getElementById('title').textContent = 'Payment confirmed';
       document.getElementById('message').textContent = 'Your program access is now active.';
-      document.getElementById('returnLink').href = './work/index.html';
+      document.getElementById('returnLink').href = '/work';
     })().catch(function (error) {
       document.getElementById('status').textContent = '!';
       document.getElementById('title').textContent = 'Payment not confirmed';

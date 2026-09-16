@@ -25,6 +25,10 @@ app.get('/admin-dashboard', (req, res) => {
   res.sendFile(fileURLToPath(new URL('./admin/index.html', import.meta.url)));
 });
 
+app.get('/work/?', (req, res) => {
+  res.sendFile(fileURLToPath(new URL('./work/index.html', import.meta.url)));
+});
+
 async function authenticatedUser(req, res) {
   if (!supabaseAdmin) {
     res.status(503).json({ error: 'Authentication service is not configured' });
