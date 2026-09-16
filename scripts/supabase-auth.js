@@ -80,7 +80,7 @@
         ? { email: email, password: password }
         : { phone: phone, password: password });
       if (result.error) return showToast(messageFor(result.error));
-      window.location.href = '../index.html';
+      window.location.href = '../user/activate.php';
     } catch (error) {
       showToast(messageFor(error));
     } finally {
@@ -121,7 +121,7 @@
       });
       if (result.error) return showToast(messageFor(result.error));
       showSignupSuccess(Boolean(result.data.session));
-      if (result.data.session) setTimeout(function () { window.location.href = '../index.html'; }, 1800);
+      if (result.data.session) setTimeout(function () { window.location.href = '../user/activate.php'; }, 1800);
     } catch (error) {
       showToast(messageFor(error));
     } finally {

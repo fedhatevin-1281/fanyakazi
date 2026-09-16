@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activate a program | Fanyakazi</title>
+  <style>
+    :root { color-scheme: dark; --bg:#050505; --panel:rgba(255,255,255,.07); --line:rgba(255,234,147,.18); --text:#FFEA93; --muted:rgba(255,234,147,.7); --red:#D90000; --olive:#8DB355; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; font-family:Segoe UI,system-ui,sans-serif; color:var(--text); background:radial-gradient(800px 500px at 90% 0%,rgba(217,0,0,.28),transparent 65%),radial-gradient(700px 500px at 0% 100%,rgba(141,179,85,.16),transparent 65%),var(--bg); }
+    a { color:inherit; text-decoration:none; }
+    .shell { width:min(100% - 32px,1100px); margin:auto; padding:28px 0 54px; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:64px; }
+    .brand { display:flex; align-items:center; gap:11px; font-weight:900; letter-spacing:.8px; }
+    .brand img { width:38px; height:38px; border-radius:12px; object-fit:cover; border:1px solid var(--line); }
+    .account { display:flex; align-items:center; gap:14px; color:var(--muted); font-size:13px; }
+    .logout { border:1px solid var(--line); background:rgba(255,255,255,.05); color:var(--text); padding:9px 14px; border-radius:9px; cursor:pointer; }
+    .eyebrow { color:var(--olive); font-size:11px; font-weight:800; letter-spacing:2px; text-transform:uppercase; }
+    h1 { max-width:650px; margin:10px 0 12px; font-size:clamp(34px,6vw,62px); line-height:1.02; letter-spacing:-1px; }
+    .intro { max-width:580px; color:var(--muted); line-height:1.7; }
+    .programs { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:42px; }
+    .program { display:flex; flex-direction:column; min-height:270px; padding:23px; border:1px solid var(--line); border-radius:18px; background:var(--panel); backdrop-filter:blur(16px); box-shadow:0 20px 55px rgba(0,0,0,.22); }
+    .program:nth-child(1) { border-top:3px solid var(--red); }
+    .program:nth-child(2) { border-top:3px solid var(--text); }
+    .program:nth-child(3) { border-top:3px solid var(--olive); }
+    .program h2 { margin:13px 0 8px; font-size:22px; }
+    .program p { flex:1; margin:0 0 22px; color:var(--muted); font-size:14px; line-height:1.6; }
+    .price { color:var(--text); font-weight:800; margin-bottom:14px; }
+    .activate { border:0; border-radius:10px; padding:12px 15px; background:linear-gradient(135deg,var(--red),#8a0000); color:var(--text); font-weight:800; cursor:pointer; }
+    .activate:disabled { opacity:.55; cursor:wait; }
+    .notice { min-height:22px; margin-top:24px; color:var(--muted); font-size:13px; }
+    @media (max-width:760px) { header { align-items:flex-start; flex-direction:column; margin-bottom:42px; } .account { width:100%; justify-content:space-between; } .programs { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <a class="brand" href="../index.html"><img src="../images/Gemini_Generated_Image_ax4xpuax4xpuax4x-removebg-preview.png" alt="Fanyakazi"> FANYAKAZI</a>
+      <div class="account"><span id="accountEmail">Checking session...</span><button class="logout" id="logoutBtn" type="button">Sign out</button></div>
+    </header>
+
+    <section>
+      <div class="eyebrow">Member activation</div>
+      <h1>Choose your first earning program.</h1>
+      <p class="intro">Activate a program once with M-Pesa, then complete its daily tasks and earn directly through Fanyakazi.</p>
+      <div class="programs">
+        <article class="program"><div class="eyebrow">Daily reviews</div><h2>Hotel Reviews</h2><p>Review real hotels and earn for every completed review.</p><div class="price">Unlock for KSh 80</div><button class="activate" data-slug="hotel-reviews" data-amount="80" type="button">Activate program</button></article>
+        <article class="program"><div class="eyebrow">Guided sessions</div><h2>Y99 Sessions</h2><p>Complete short guided sessions and earn daily rewards.</p><div class="price">Unlock for KSh 100</div><button class="activate" data-slug="y99" data-amount="100" type="button">Activate program</button></article>
+        <article class="program"><div class="eyebrow">AI training</div><h2>AI Training</h2><p>Complete guided AI training sessions and build your daily wallet.</p><div class="price">Unlock for KSh 100</div><button class="activate" data-slug="ai-training" data-amount="100" type="button">Activate program</button></article>
+      </div>
+      <div class="notice" id="notice" role="status"></div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../scripts/supabase-config.js"></script>
+  <script src="../scripts/supabase-auth.js"></script>
+  <script src="../scripts/paystack.js"></script>
+  <script>
+    (async function () {
+      var client = window.fanyakaziSupabase;
+      var notice = document.getElementById('notice');
+      if (!client) { notice.textContent = 'Authentication is not configured.'; return; }
+      var result = await client.auth.getSession();
+      var session = result.data.session;
+      if (!session) { window.location.href = '../pages/login.php.html'; return; }
+      document.getElementById('accountEmail').textContent = session.user.email || 'Signed-in member';
+
+      document.getElementById('logoutBtn').addEventListener('click', async function () {
+        await client.auth.signOut();
+        window.location.href = '../pages/login.php.html';
+      });
+      document.querySelectorAll('.activate').forEach(function (button) {
+        button.addEventListener('click', async function () {
+          button.disabled = true;
+          notice.textContent = 'Opening secure payment...';
+          try {
+            await window.startPaystackCheckout(button.dataset.slug, Number(button.dataset.amount));
+          } catch (error) {
+            notice.textContent = error.message || 'Unable to start activation.';
+            button.disabled = false;
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

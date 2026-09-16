@@ -5,6 +5,7 @@
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "payment-callback.html", "use": "@vercel/static" },
     { "src": "pages/**", "use": "@vercel/static" },
+    { "src": "user/**", "use": "@vercel/static" },
     { "src": "scripts/**", "use": "@vercel/static" },
     { "src": "styles/**", "use": "@vercel/static" },
     { "src": "images/**", "use": "@vercel/static" }
