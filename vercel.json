@@ -13,7 +13,7 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/server.mjs" },
-    { "src": "/admin-dashboard/?$", "dest": "/admin/index.html" },
+    { "src": "/admin-dashboard/?$", "dest": "/server.mjs" },
     { "src": "/admin", "dest": "/admin/login.html" },
     { "src": "/admin/", "dest": "/admin/login.html" },
     { "handle": "filesystem" },

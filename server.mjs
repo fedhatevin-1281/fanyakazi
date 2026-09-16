@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
+import { fileURLToPath } from 'node:url';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -19,6 +20,10 @@ const supabaseAdmin = missingEnv.includes('SUPABASE_URL') || missingEnv.includes
 
 app.use(express.json());
 app.use(express.static('.'));
+
+app.get('/admin-dashboard', (req, res) => {
+  res.sendFile(fileURLToPath(new URL('./admin/index.html', import.meta.url)));
+});
 
 async function authenticatedUser(req, res) {
   if (!supabaseAdmin) {
