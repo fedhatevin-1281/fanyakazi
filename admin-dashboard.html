@@ -17,20 +17,20 @@
 </head>
 <body>
   <main class="shell">
-    <header><a class="brand" href="../index.html"><img src="../images/Gemini_Generated_Image_ax4xpuax4xpuax4x-removebg-preview.png" alt="Fanyakazi"> FANYAKAZI ADMIN</a><button id="logout" type="button">Sign out</button></header>
+    <header><a class="brand" href="./index.html"><img src="./images/Gemini_Generated_Image_ax4xpuax4xpuax4x-removebg-preview.png" alt="Fanyakazi"> FANYAKAZI ADMIN</a><button id="logout" type="button">Sign out</button></header>
     <section><div class="eyebrow">Site activity</div><h1>Operations overview</h1>
       <div class="metrics"><div class="metric"><span>Users</span><b id="users">-</b></div><div class="metric"><span>Referrals</span><b id="referrals">-</b></div><div class="metric"><span>Successful payments</span><b id="payments">-</b></div><div class="metric"><span>Revenue (KES)</span><b id="revenue">-</b></div></div>
       <div class="grid"><section class="panel"><h2>Recent users</h2><div id="usersTable" class="empty">Loading...</div></section><section class="panel"><h2>Recent transactions</h2><div id="transactionsTable" class="empty">Loading...</div></section></div>
       <p id="error"></p>
     </section>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../scripts/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./scripts/supabase-config.js"></script>
   <script>
     (async function () {
       var client = window.supabase.createClient(window.FANYAKAZI_CONFIG.supabaseUrl, window.FANYAKAZI_CONFIG.supabaseAnonKey);
       var sessionResult = await client.auth.getSession(); var session = sessionResult.data.session;
-      if (!session) { window.location.href = '../pages/login.php.html'; return; }
-      document.getElementById('logout').onclick = async function () { await client.auth.signOut(); window.location.href = '../pages/login.php.html'; };
+      if (!session) { window.location.href = './pages/login.php.html'; return; }
+      document.getElementById('logout').onclick = async function () { await client.auth.signOut(); window.location.href = './pages/login.php.html'; };
       try {
         var response = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/overview', { headers: { Authorization: 'Bearer ' + session.access_token } });
         var data = await response.json(); if (!response.ok) throw new Error(data.error || 'Unable to load admin data.');
