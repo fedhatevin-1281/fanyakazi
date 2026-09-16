@@ -204,6 +204,74 @@ app.post('/api/admin/grant-access', async (req, res) => {
   }
 });
 
+app.get('/api/work/overview', async (req, res) => {
+  try {
+    const user = await authenticatedUser(req, res);
+    if (!user) return;
+    const { data: access, error: accessError } = await supabaseAdmin
+      .from('user_programs').select('program_id, is_active').eq('user_id', user.id).eq('is_active', true);
+    if (accessError) throw accessError;
+    const programIds = (access || []).map((item) => item.program_id);
+    if (!programIds.length) return res.json({ programs: [], jobs: [], submissions: [], wallet: { balance: 0, lifetime_earned: 0 } });
+    const [programsResult, jobsResult, submissionsResult, walletResult] = await Promise.all([
+      supabaseAdmin.from('programs').select('id, slug, name, description, task_reward').in('id', programIds),
+      supabaseAdmin.from('jobs').select('id, program_id, category, title, description, image_url, external_url, reward, created_at').in('program_id', programIds).eq('is_active', true).order('created_at', { ascending: false }),
+      supabaseAdmin.from('job_submissions').select('job_id, status, reward, created_at, review_text').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabaseAdmin.from('wallets').select('balance, lifetime_earned').eq('user_id', user.id).single()
+    ]);
+    const failure = [programsResult, jobsResult, submissionsResult, walletResult].find((result) => result.error);
+    if (failure) throw failure.error;
+    res.json({ programs: programsResult.data || [], jobs: jobsResult.data || [], submissions: submissionsResult.data || [], wallet: walletResult.data || { balance: 0, lifetime_earned: 0 } });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to load work' });
+  }
+});
+
+app.post('/api/work/reviews', async (req, res) => {
+  try {
+    const user = await authenticatedUser(req, res);
+    if (!user) return;
+    const { jobId, reviewText, proofUrl } = req.body || {};
+    if (!jobId || !String(reviewText || '').trim()) return res.status(400).json({ error: 'A review is required' });
+    const { data: job, error: jobError } = await supabaseAdmin.from('jobs').select('id, program_id, reward').eq('id', jobId).eq('category', 'hotel_review').eq('is_active', true).single();
+    if (jobError || !job) return res.status(404).json({ error: 'Review job not found' });
+    const { data: access, error: accessError } = await supabaseAdmin.from('user_programs').select('id').eq('user_id', user.id).eq('program_id', job.program_id).eq('is_active', true).maybeSingle();
+    if (accessError) throw accessError;
+    if (!access) return res.status(403).json({ error: 'Activate this program first' });
+    const { data: submission, error: submissionError } = await supabaseAdmin.from('job_submissions').insert({ job_id: job.id, user_id: user.id, review_text: String(reviewText).trim(), proof_url: proofUrl || null, status: 'approved', reward: Number(job.reward) }).select('id').single();
+    if (submissionError) return res.status(submissionError.code === '23505' ? 409 : 500).json({ error: submissionError.code === '23505' ? 'You already completed this review' : submissionError.message });
+    const { data: wallet, error: walletError } = await supabaseAdmin.from('wallets').select('balance, lifetime_earned').eq('user_id', user.id).single();
+    if (walletError) throw walletError;
+    const reward = Number(job.reward);
+    const { error: updateWalletError } = await supabaseAdmin.from('wallets').update({ balance: Number(wallet.balance) + reward, lifetime_earned: Number(wallet.lifetime_earned) + reward }).eq('user_id', user.id);
+    if (updateWalletError) throw updateWalletError;
+    const { error: ledgerError } = await supabaseAdmin.from('wallet_ledger').insert({ user_id: user.id, type: 'earning', amount: reward, description: `Completed: ${job.id}`, program_id: job.program_id });
+    if (ledgerError) throw ledgerError;
+    res.json({ status: 'approved', reward, submissionId: submission.id });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to submit review' });
+  }
+});
+
+app.post('/api/admin/jobs', async (req, res) => {
+  try {
+    const admin = await authenticatedAdmin(req, res);
+    if (!admin) return;
+    const { programSlug, category, title, description, imageUrl, externalUrl, reward } = req.body || {};
+    if (!programSlug || !category || !title || !description) return res.status(400).json({ error: 'Program, category, title and description are required' });
+    if ((category === 'hotel_review' && programSlug !== 'hotel-reviews') || (category === 'ai_training' && programSlug !== 'ai-training')) return res.status(400).json({ error: 'Category does not match the selected program' });
+    if (category === 'hotel_review' && !imageUrl) return res.status(400).json({ error: 'Hotel review jobs require an image URL' });
+    if (category === 'ai_training' && !externalUrl) return res.status(400).json({ error: 'AI training jobs require a work link' });
+    const { data: program, error: programError } = await supabaseAdmin.from('programs').select('id').eq('slug', programSlug).single();
+    if (programError || !program) return res.status(404).json({ error: 'Program not found' });
+    const { data: job, error } = await supabaseAdmin.from('jobs').insert({ program_id: program.id, category, title: String(title).trim(), description: String(description).trim(), image_url: imageUrl || null, external_url: externalUrl || null, reward: Number(reward) || 500 }).select('id').single();
+    if (error) throw error;
+    res.json({ status: 'created', job });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to create job' });
+  }
+});
+
 if (process.env.VERCEL !== '1') {
   app.listen(port, () => console.log(`Fanyakazi API listening on http://localhost:${port}`));
 }

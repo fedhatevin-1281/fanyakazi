@@ -287,3 +287,43 @@ alter table public.transactions add constraint transactions_type_check
 alter table public.transactions drop constraint if exists transaction_program_required;
 alter table public.transactions add constraint transaction_program_required
   check (type in ('program_unlock', 'admin_grant') or program_id is not null);
+
+-- Work content and submissions migration.
+create table if not exists public.jobs (
+  id uuid primary key default gen_random_uuid(),
+  program_id uuid not null references public.programs(id) on delete cascade,
+  category text not null check (category in ('hotel_review', 'ai_training')),
+  title text not null,
+  description text not null default '',
+  image_url text,
+  external_url text,
+  reward numeric(12,2) not null default 500 check (reward > 0),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.job_submissions (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid not null references public.jobs(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  review_text text,
+  proof_url text,
+  status text not null default 'approved' check (status in ('pending', 'approved', 'rejected')),
+  reward numeric(12,2) not null default 0 check (reward >= 0),
+  created_at timestamptz not null default now(),
+  unique (job_id, user_id)
+);
+
+create index if not exists jobs_program_id_idx on public.jobs(program_id);
+create index if not exists job_submissions_user_id_idx on public.job_submissions(user_id);
+alter table public.jobs enable row level security;
+alter table public.job_submissions enable row level security;
+
+drop policy if exists jobs_admin_only on public.jobs;
+create policy jobs_admin_only on public.jobs for all using (public.is_admin()) with check (public.is_admin());
+drop policy if exists job_submissions_admin_only on public.job_submissions;
+create policy job_submissions_admin_only on public.job_submissions for all using (public.is_admin()) with check (public.is_admin());
+
+drop trigger if exists jobs_updated_at on public.jobs;
+create trigger jobs_updated_at before update on public.jobs for each row execute function public.set_updated_at();
