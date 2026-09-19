@@ -1,8 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "server.mjs": { "includeFiles": ["admin/index.html", "work/index.html"] }
-  },
   "builds": [
     { "src": "api/index.mjs", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
