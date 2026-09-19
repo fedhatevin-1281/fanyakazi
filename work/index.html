@@ -269,6 +269,63 @@
       color: var(--muted);
       text-align: center;
     }
+    .wallet-panel {
+      margin-top: 18px;
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    }
+    .panel-box {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .panel-box h3 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+    .withdraw-form {
+      display: grid;
+      gap: 12px;
+    }
+    .withdraw-form input,
+    .withdraw-form textarea {
+      width: 100%;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.02);
+      color: var(--text);
+      resize: vertical;
+    }
+    .withdraw-form textarea {
+      min-height: 80px;
+    }
+    .withdrawal-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .withdrawal-table th,
+    .withdrawal-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+      vertical-align: top;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+    .status-pill.pending { background: rgba(255, 194, 67, 0.12); color: #f7d56a; }
+    .status-pill.approved { background: rgba(141, 179, 85, 0.12); color: var(--olive); }
+    .status-pill.rejected { background: rgba(217, 0, 0, 0.12); color: #ff8e8e; }
     .notice {
       min-height: 24px;
       margin-top: 18px;
@@ -390,6 +447,24 @@
           </div>
         </div>
 
+        <div class="wallet-panel">
+          <section class="panel-box">
+            <h3>Request withdrawal</h3>
+            <div class="withdraw-form">
+              <input id="withdrawAmount" type="number" min="1" step="1" placeholder="Withdrawal amount (KES)" />
+              <input id="withdrawPhone" type="tel" placeholder="Phone number for payout" />
+              <textarea id="withdrawNote" placeholder="Optional note for the admin"></textarea>
+              <button class="primary-btn" id="requestWithdrawal" type="button">Request withdrawal</button>
+            </div>
+            <p class="notice" id="withdrawalNotice"></p>
+          </section>
+
+          <section class="panel-box">
+            <h3>Withdrawal history</h3>
+            <div id="withdrawalHistory" class="empty-state">No withdrawal requests yet.</div>
+          </section>
+        </div>
+
         <div class="jobs" id="jobs">Loading work...</div>
         <p class="notice" id="notice" role="status"></p>
       </section>
@@ -433,6 +508,7 @@
         programs: [],
         jobs: [],
         submissions: [],
+        withdrawals: [],
         wallet: { balance: 0, lifetime_earned: 0 }
       };
 
@@ -448,6 +524,43 @@
       var taskNotice = document.getElementById('taskNotice');
       var taskModalTitle = document.getElementById('taskModalTitle');
       var taskModalLabel = document.getElementById('taskModalLabel');
+      var withdrawalNotice = document.getElementById('withdrawalNotice');
+      var withdrawalHistory = document.getElementById('withdrawalHistory');
+      var withdrawAmount = document.getElementById('withdrawAmount');
+      var withdrawPhone = document.getElementById('withdrawPhone');
+      var withdrawNote = document.getElementById('withdrawNote');
+      var requestWithdrawalBtn = document.getElementById('requestWithdrawal');
+
+      function isFridayWithdrawalDay() {
+        return new Date().getDay() === 5;
+      }
+
+      function setWithdrawalNotice(message, isError) {
+        withdrawalNotice.textContent = message || '';
+        withdrawalNotice.style.color = isError ? '#ff9a9a' : 'var(--muted)';
+      }
+
+      function renderWithdrawalHistory() {
+        if (!state.withdrawals || !state.withdrawals.length) {
+          withdrawalHistory.innerHTML = '<div class="empty-state">No withdrawal requests yet.</div>';
+          return;
+        }
+
+        const allowed = isFridayWithdrawalDay();
+        requestWithdrawalBtn.disabled = !allowed;
+        requestWithdrawalBtn.title = allowed ? 'Request a payout for this Friday' : 'Withdrawals are only allowed every Friday';
+        withdrawalHistory.innerHTML = '<table class="withdrawal-table"><thead><tr><th>Amount</th><th>Phone</th><th>Note</th><th>Status</th><th>Date</th></tr></thead><tbody>' + state.withdrawals.map(function (item) {
+          return '<tr><td>' + escapeHtml(formatKES(item.amount)) + '</td><td>' + escapeHtml(item.phone || '-') + '</td><td>' + escapeHtml(item.note || '-') + '</td><td><span class="status-pill ' + escapeHtml(item.status || 'pending') + '">' + escapeHtml((item.status || 'pending')) + '</span></td><td>' + escapeHtml(item.requested_at ? new Date(item.requested_at).toLocaleDateString() : '-') + '</td></tr>';
+        }).join('') + '</tbody></table>';
+
+        if (!allowed) {
+          setWithdrawalNotice('Withdrawals are only allowed every Friday.', true);
+        } else if (state.wallet && Number(state.wallet.balance) <= 0) {
+          setWithdrawalNotice('Your wallet is empty. Complete more work before requesting a payout.', true);
+        } else {
+          setWithdrawalNotice('Withdrawal requests open every Friday for approved member payouts.', false);
+        }
+      }
 
       function escapeHtml(value) {
         return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
@@ -683,6 +796,7 @@
           state.programs = payload.programs || [];
           state.jobs = payload.jobs || [];
           state.submissions = payload.submissions || [];
+          state.withdrawals = payload.withdrawals || [];
           state.wallet = payload.wallet || { balance: 0, lifetime_earned: 0 };
 
           balanceEl.textContent = formatKES(state.wallet.balance);
@@ -693,6 +807,7 @@
           }
 
           renderPrograms();
+          renderWithdrawalHistory();
           renderJobs();
           if (!state.programs.length) {
             setNotice('Activate a program to start earning.', false);
@@ -701,6 +816,58 @@
           setNotice(error.message || 'Unable to load work.', true);
         }
       }
+
+      requestWithdrawalBtn.addEventListener('click', async function () {
+        var amount = Number(withdrawAmount.value);
+        var phone = withdrawPhone.value.trim();
+        var note = withdrawNote.value.trim();
+
+        if (!isFridayWithdrawalDay()) {
+          setWithdrawalNotice('Withdrawals are only allowed every Friday.', true);
+          return;
+        }
+
+        if (!Number.isFinite(amount) || amount <= 0) {
+          setWithdrawalNotice('Enter a valid KES withdrawal amount.', true);
+          return;
+        }
+
+        if (!phone) {
+          setWithdrawalNotice('Add a phone number so the admin can send the payout.', true);
+          return;
+        }
+
+        if (amount > Number(state.wallet.balance || 0)) {
+          setWithdrawalNotice('You cannot withdraw more than your available wallet balance.', true);
+          return;
+        }
+
+        requestWithdrawalBtn.disabled = true;
+        setWithdrawalNotice('Sending withdrawal request...', false);
+
+        try {
+          var response = await fetch(config.apiBaseUrl + '/api/work/withdrawals/request', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + session.access_token
+            },
+            body: JSON.stringify({ amount: amount, phone: phone, note: note || null })
+          });
+          var payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || 'Unable to request withdrawal.');
+
+          withdrawAmount.value = '';
+          withdrawPhone.value = '';
+          withdrawNote.value = '';
+          setWithdrawalNotice('Withdrawal request sent to the admin for approval.', false);
+          await loadOverview();
+        } catch (error) {
+          setWithdrawalNotice(error.message || 'Unable to request withdrawal.', true);
+        } finally {
+          requestWithdrawalBtn.disabled = !isFridayWithdrawalDay();
+        }
+      });
 
       await loadOverview();
     })();

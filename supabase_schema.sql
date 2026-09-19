@@ -117,6 +117,19 @@ create table if not exists public.wallet_ledger (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.withdrawal_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  amount numeric(12,2) not null check (amount > 0),
+  phone text not null,
+  note text,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  requested_at timestamptz not null default now(),
+  approved_by uuid references public.profiles(id) on delete set null,
+  approved_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid references public.profiles(id) on delete set null,
@@ -131,6 +144,8 @@ create index if not exists transactions_user_id_idx on public.transactions(user_
 create index if not exists transactions_status_idx on public.transactions(status);
 create index if not exists transactions_created_at_idx on public.transactions(created_at desc);
 create index if not exists wallet_ledger_user_id_idx on public.wallet_ledger(user_id);
+create index if not exists withdrawal_requests_user_id_idx on public.withdrawal_requests(user_id);
+create index if not exists withdrawal_requests_status_idx on public.withdrawal_requests(status);
 create index if not exists referrals_referrer_id_idx on public.referrals(referrer_id);
 create index if not exists audit_logs_created_at_idx on public.audit_logs(created_at desc);
 
@@ -258,6 +273,18 @@ for select using (user_id = auth.uid() or public.is_admin());
 drop policy if exists wallet_ledger_admin_write on public.wallet_ledger;
 create policy wallet_ledger_admin_write on public.wallet_ledger
 for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists withdrawal_requests_select_own_or_admin on public.withdrawal_requests;
+create policy withdrawal_requests_select_own_or_admin on public.withdrawal_requests
+for select using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists withdrawal_requests_insert_own on public.withdrawal_requests;
+create policy withdrawal_requests_insert_own on public.withdrawal_requests
+for insert with check (user_id = auth.uid());
+
+drop policy if exists withdrawal_requests_admin_write on public.withdrawal_requests;
+create policy withdrawal_requests_admin_write on public.withdrawal_requests
+for update using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists audit_logs_admin_only on public.audit_logs;
 create policy audit_logs_admin_only on public.audit_logs

@@ -30,6 +30,7 @@ app.get('/admin/login.php.html', serveAdminLogin);
 
 app.get('/admin-dashboard', (req, res) => {
   const dashboardPath = fileURLToPath(new URL('./admin/index.html', import.meta.url));
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.type('html').send(readFileSync(dashboardPath, 'utf8'));
 });
 
@@ -81,6 +82,10 @@ async function ensureWallet(userId) {
     .from('wallets').insert({ user_id: userId, balance: 0, lifetime_earned: 0 }).select('id, balance, lifetime_earned').single();
   if (createError) throw createError;
   return created;
+}
+
+function isFridayWithdrawalDay() {
+  return new Date().getDay() === 5;
 }
 
 async function awardTaskReward(userId, programId, jobId, amount, description) {
@@ -197,14 +202,15 @@ app.get('/api/admin/overview', async (req, res) => {
   try {
     const user = await authenticatedAdmin(req, res);
     if (!user) return;
-    const [usersResult, referralsResult, transactionsResult, programsResult, jobsResult] = await Promise.all([
+    const [usersResult, referralsResult, transactionsResult, programsResult, jobsResult, withdrawalsResult] = await Promise.all([
       supabaseAdmin.from('profiles').select('id, username, phone, country, role, is_active, created_at, referral_code').order('created_at', { ascending: false }).limit(100),
       supabaseAdmin.from('referrals').select('id, referrer_id, referred_id, created_at').order('created_at', { ascending: false }).limit(100),
       supabaseAdmin.from('transactions').select('id, user_id, program_id, amount, currency, status, type, paystack_reference, created_at, paid_at').order('created_at', { ascending: false }).limit(100),
       supabaseAdmin.from('programs').select('id, name, slug, unlock_amount, is_active').order('name'),
-      supabaseAdmin.from('jobs').select('id, program_id, category, title, description, image_url, image_urls, external_url, reward, created_at, created_by').eq('created_by', user.id).order('created_at', { ascending: false })
+      supabaseAdmin.from('jobs').select('id, program_id, category, title, description, image_url, image_urls, external_url, reward, created_at, created_by').order('created_at', { ascending: false }),
+      supabaseAdmin.from('withdrawal_requests').select('id, user_id, amount, phone, note, status, requested_at, approved_at').order('requested_at', { ascending: false }).limit(100)
     ]);
-    const failure = [usersResult, referralsResult, transactionsResult, programsResult, jobsResult].find((result) => result.error);
+    const failure = [usersResult, referralsResult, transactionsResult, programsResult, jobsResult, withdrawalsResult].find((result) => result.error);
     if (failure) throw failure.error;
     const transactions = transactionsResult.data || [];
     const successful = transactions.filter((transaction) => transaction.status === 'success');
@@ -216,6 +222,7 @@ app.get('/api/admin/overview', async (req, res) => {
       transactions,
       programs: programsResult.data || [],
       jobs: jobsResult.data || [],
+      withdrawals: withdrawalsResult.data || [],
       metrics: {
         users: usersResult.data?.length || 0,
         referrals: referralsResult.data?.length || 0,
@@ -225,6 +232,74 @@ app.get('/api/admin/overview', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Unable to load admin activity' });
+  }
+});
+
+app.get('/api/admin/withdrawals', async (req, res) => {
+  try {
+    const admin = await authenticatedAdmin(req, res);
+    if (!admin) return;
+    const { data, error } = await supabaseAdmin
+      .from('withdrawal_requests')
+      .select('id, user_id, amount, phone, note, status, requested_at, approved_at, approved_by')
+      .order('requested_at', { ascending: false });
+    if (error) throw error;
+    res.json({ withdrawals: data || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to load withdrawal requests' });
+  }
+});
+
+app.post('/api/admin/withdrawals/:id/approve', async (req, res) => {
+  try {
+    const admin = await authenticatedAdmin(req, res);
+    if (!admin) return;
+    const { id } = req.params;
+    const { data: request, error: requestError } = await supabaseAdmin
+      .from('withdrawal_requests').select('id, user_id, amount, phone, status').eq('id', id).single();
+    if (requestError || !request) return res.status(404).json({ error: 'Withdrawal request not found' });
+    if (request.status !== 'pending') return res.status(400).json({ error: 'This request is no longer pending' });
+    const wallet = await ensureWallet(request.user_id);
+    const currentBalance = Number(wallet.balance || 0);
+    const nextBalance = Math.max(0, currentBalance - Number(request.amount));
+    const { error: walletError } = await supabaseAdmin.from('wallets').update({ balance: nextBalance }).eq('user_id', request.user_id);
+    if (walletError) throw walletError;
+    const { error: updateError } = await supabaseAdmin.from('withdrawal_requests').update({
+      status: 'approved',
+      approved_by: admin.id,
+      approved_at: new Date().toISOString()
+    }).eq('id', id).eq('status', 'pending');
+    if (updateError) throw updateError;
+    const { error: ledgerError } = await supabaseAdmin.from('wallet_ledger').insert({
+      user_id: request.user_id,
+      type: 'withdrawal',
+      amount: Number(request.amount),
+      description: `Approved withdrawal request ${request.id}`,
+      source_user_id: admin.id
+    });
+    if (ledgerError) throw ledgerError;
+    res.json({ status: 'approved', request: { id: request.id, amount: request.amount } });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to approve withdrawal' });
+  }
+});
+
+app.post('/api/admin/withdrawals/:id/reject', async (req, res) => {
+  try {
+    const admin = await authenticatedAdmin(req, res);
+    if (!admin) return;
+    const { id } = req.params;
+    const { note } = req.body || {};
+    const { error } = await supabaseAdmin.from('withdrawal_requests').update({
+      status: 'rejected',
+      approved_by: admin.id,
+      approved_at: new Date().toISOString(),
+      note: note ? String(note).trim() || null : null
+    }).eq('id', id).eq('status', 'pending');
+    if (error) throw error;
+    res.json({ status: 'rejected', id });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to reject withdrawal' });
   }
 });
 
@@ -286,6 +361,56 @@ app.post('/api/admin/grant-access', async (req, res) => {
   }
 });
 
+app.get('/api/work/withdrawals', async (req, res) => {
+  try {
+    const user = await authenticatedUser(req, res);
+    if (!user) return;
+    const { data, error } = await supabaseAdmin
+      .from('withdrawal_requests')
+      .select('id, amount, phone, note, status, requested_at, approved_at, approved_by')
+      .eq('user_id', user.id)
+      .order('requested_at', { ascending: false });
+    if (error) throw error;
+    res.json({ withdrawals: data || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to load withdrawal history' });
+  }
+});
+
+app.post('/api/work/withdrawals/request', async (req, res) => {
+  try {
+    const user = await authenticatedUser(req, res);
+    if (!user) return;
+    const { amount, phone, note } = req.body || {};
+    if (!isFridayWithdrawalDay()) {
+      return res.status(400).json({ error: 'Withdrawals are only allowed every Friday.' });
+    }
+    const withdrawAmount = Number(amount);
+    if (!Number.isFinite(withdrawAmount) || withdrawAmount <= 0) {
+      return res.status(400).json({ error: 'Enter a valid withdrawal amount.' });
+    }
+    const cleanedPhone = String(phone || '').trim();
+    if (!cleanedPhone) {
+      return res.status(400).json({ error: 'A phone number is required for payout.' });
+    }
+    const wallet = await ensureWallet(user.id);
+    if (withdrawAmount > Number(wallet.balance || 0)) {
+      return res.status(400).json({ error: 'Withdrawal amount exceeds your available wallet balance.' });
+    }
+    const { data, error } = await supabaseAdmin.from('withdrawal_requests').insert({
+      user_id: user.id,
+      amount: withdrawAmount,
+      phone: cleanedPhone,
+      note: note ? String(note).trim() : null,
+      status: 'pending'
+    }).select('id, amount, status').single();
+    if (error) throw error;
+    res.json({ status: 'requested', request: data });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to request withdrawal' });
+  }
+});
+
 app.get('/api/work/overview', async (req, res) => {
   try {
     const user = await authenticatedUser(req, res);
@@ -294,16 +419,22 @@ app.get('/api/work/overview', async (req, res) => {
       .from('user_programs').select('program_id, is_active').eq('user_id', user.id).eq('is_active', true);
     if (accessError) throw accessError;
     const programIds = (access || []).map((item) => item.program_id);
-    if (!programIds.length) return res.json({ programs: [], jobs: [], submissions: [], wallet: { balance: 0, lifetime_earned: 0 } });
-    const [programsResult, jobsResult, submissionsResult, walletResult] = await Promise.all([
-      supabaseAdmin.from('programs').select('id, slug, name, description, task_reward').in('id', programIds),
-      supabaseAdmin.from('jobs').select('id, program_id, category, title, description, image_url, external_url, reward, created_at').in('program_id', programIds).eq('is_active', true).order('created_at', { ascending: false }),
+    const [programsResult, jobsResult, submissionsResult, walletResult, withdrawalsResult] = await Promise.all([
+      programIds.length ? supabaseAdmin.from('programs').select('id, slug, name, description, task_reward').in('id', programIds) : Promise.resolve({ data: [], error: null }),
+      programIds.length ? supabaseAdmin.from('jobs').select('id, program_id, category, title, description, image_url, external_url, reward, created_at').in('program_id', programIds).eq('is_active', true).order('created_at', { ascending: false }) : Promise.resolve({ data: [], error: null }),
       supabaseAdmin.from('job_submissions').select('job_id, status, reward, created_at, review_text').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabaseAdmin.from('wallets').select('balance, lifetime_earned').eq('user_id', user.id).maybeSingle()
+      supabaseAdmin.from('wallets').select('balance, lifetime_earned').eq('user_id', user.id).maybeSingle(),
+      supabaseAdmin.from('withdrawal_requests').select('id, amount, phone, note, status, requested_at, approved_at').eq('user_id', user.id).order('requested_at', { ascending: false })
     ]);
-    const failure = [programsResult, jobsResult, submissionsResult, walletResult].find((result) => result.error);
+    const failure = [programsResult, jobsResult, submissionsResult, walletResult, withdrawalsResult].find((result) => result.error);
     if (failure) throw failure.error;
-    res.json({ programs: programsResult.data || [], jobs: jobsResult.data || [], submissions: submissionsResult.data || [], wallet: walletResult.data || { balance: 0, lifetime_earned: 0 } });
+    res.json({
+      programs: programsResult.data || [],
+      jobs: jobsResult.data || [],
+      submissions: submissionsResult.data || [],
+      wallet: walletResult.data || { balance: 0, lifetime_earned: 0 },
+      withdrawals: withdrawalsResult.data || []
+    });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Unable to load work' });
   }

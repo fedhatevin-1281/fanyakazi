@@ -13,6 +13,11 @@
     button { border:1px solid var(--line); border-radius:9px; padding:10px 14px; background:rgba(255,255,255,.05); color:var(--text); cursor:pointer; } .eyebrow { color:var(--olive); font-size:11px; font-weight:800; letter-spacing:2px; text-transform:uppercase; } h1 { margin:9px 0 30px; font-size:clamp(32px,5vw,54px); }
     .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; } .metric, .panel { border:1px solid var(--line); border-radius:16px; background:var(--panel); backdrop-filter:blur(16px); } .metric { padding:20px; } .metric b { display:block; margin-top:8px; font-size:30px; } .metric span { color:var(--muted); font-size:13px; }
     .grid { display:grid; grid-template-columns:1.15fr .85fr; gap:18px; margin-top:18px; } .panel { padding:20px; overflow:auto; } .panel h2 { margin:0 0 16px; font-size:18px; } table { width:100%; border-collapse:collapse; font-size:12px; } th,td { text-align:left; padding:11px 8px; border-bottom:1px solid rgba(255,255,255,.08); white-space:nowrap; } th { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:1px; } .empty, #error { color:var(--muted); font-size:13px; } #error { margin-top:20px; color:#ff8f8f; } .job-form { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; } .job-form input,.job-form select,.job-form textarea { width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; background:#0008; color:var(--text); font:inherit; } .job-form textarea { min-height:70px; grid-column:1/-1; } .job-form .wide { grid-column:1/-1; } .job-form button { border:0; border-radius:8px; padding:11px; background:var(--red); color:var(--text); font-weight:800; cursor:pointer; }
+    .status-pill { display:inline-block; padding:5px 8px; border-radius:999px; font-size:11px; font-weight:700; text-transform:capitalize; }
+    .status-pill.pending { background:rgba(255,194,67,.12); color:#f7d56a; }
+    .status-pill.approved { background:rgba(141,179,85,.12); color:var(--olive); }
+    .status-pill.rejected { background:rgba(217,0,0,.12); color:#ff8e8e; }
+    .mini-btn { margin-right:8px; }
     @media(max-width:800px) { .metrics { grid-template-columns:repeat(2,1fr); } .grid { grid-template-columns:1fr; } header { align-items:flex-start; flex-direction:column; } }
   </style>
 </head>
@@ -23,6 +28,7 @@
       <div class="metrics"><div class="metric"><span>Users</span><b id="users">-</b></div><div class="metric"><span>Referrals</span><b id="referrals">-</b></div><div class="metric"><span>Successful payments</span><b id="payments">-</b></div><div class="metric"><span>Revenue (KES)</span><b id="revenue">-</b></div></div>
       <section class="panel" style="margin-top:18px"><h2>Publish work</h2><form class="job-form" id="jobForm"><select id="jobProgram" required></select><select id="jobCategory" required><option value="hotel_review">Hotel review</option><option value="ai_training">AI training</option></select><input id="jobTitle" placeholder="Job title" required><input id="jobReward" type="number" min="1" value="500" placeholder="Reward"><textarea id="jobDescription" class="wide" placeholder="Work description" required></textarea><textarea id="jobImage" class="wide" placeholder="Hotel image URLs (one per line or comma separated)"></textarea><input id="jobUrl" placeholder="AI work link"><button class="wide" type="submit">Publish job</button></form><p id="jobStatus" class="empty"></p></section>
       <section class="panel" style="margin-top:18px"><h2>Your published tasks</h2><div id="jobsTable" class="empty">Loading...</div></section>
+      <section class="panel" style="margin-top:18px"><h2>Withdrawal requests</h2><div id="withdrawalsTable" class="empty">Loading...</div></section>
       <div class="grid"><section class="panel"><h2>Recent users</h2><div id="usersTable" class="empty">Loading...</div></section><section class="panel"><h2>Recent transactions</h2><div id="transactionsTable" class="empty">Loading...</div></section></div>
       <p id="grantStatus" class="empty"></p>
       <p id="error"></p>
@@ -31,22 +37,173 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../scripts/supabase-config.js"></script>
   <script>
     (async function () {
+      function escapeHtml(value) {
+        return String(value == null ? '-' : value).replace(/[&<>"']/g, function (character) {
+          var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+          return map[character] || character;
+        });
+      }
+
+      function formatMoney(value) {
+        return 'KSh ' + Number(value || 0).toLocaleString();
+      }
+
       var client = window.supabase.createClient(window.FANYAKAZI_CONFIG.supabaseUrl, window.FANYAKAZI_CONFIG.supabaseAnonKey);
-      var sessionResult = await client.auth.getSession(); var session = sessionResult.data.session;
-      if (!session) { window.location.href = '/admin'; return; }
-      document.getElementById('logout').onclick = async function () { await client.auth.signOut(); window.location.href = '/admin'; };
+      var session = (await client.auth.getSession()).data.session;
+      if (!session) {
+        window.location.href = '/admin';
+        return;
+      }
+
+      document.getElementById('logout').onclick = async function () {
+        await client.auth.signOut();
+        window.location.href = '/admin';
+      };
+
       try {
-        var response = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/overview', { headers: { Authorization: 'Bearer ' + session.access_token } });
-        var data = await response.json(); if (!response.ok) throw new Error(data.error || 'Unable to load admin data.');
-        document.getElementById('users').textContent = data.metrics.users; document.getElementById('referrals').textContent = data.metrics.referrals; document.getElementById('payments').textContent = data.metrics.successfulPayments; document.getElementById('revenue').textContent = Number(data.metrics.revenue).toLocaleString(); document.getElementById('jobProgram').innerHTML = data.programs.map(function (program) { return '<option value="' + escapeHtml(program.slug) + '">' + escapeHtml(program.name) + '</option>'; }).join('');
-        function escapeHtml(value) { return String(value == null ? '-' : value).replace(/[&<>"']/g, function (character) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[character]; }); }
-        document.getElementById('usersTable').innerHTML = '<table><thead><tr><th>Username</th><th>Phone</th><th>Country</th><th>Joined</th><th>Grant access</th></tr></thead><tbody>' + data.users.map(function (user) { return '<tr><td>' + escapeHtml(user.username) + '</td><td>' + escapeHtml(user.phone) + '</td><td>' + escapeHtml(user.country) + '</td><td>' + escapeHtml(new Date(user.created_at).toLocaleDateString()) + '</td><td><select class="grant-program" data-user-id="' + escapeHtml(user.id) + '">' + data.programs.filter(function (program) { return program.is_active; }).map(function (program) { return '<option value="' + escapeHtml(program.slug) + '">' + escapeHtml(program.name) + '</option>'; }).join('') + '</select><button class="grant-button" data-user-id="' + escapeHtml(user.id) + '">Grant</button></td></tr>'; }).join('') + '</tbody></table>';
-        document.getElementById('transactionsTable').innerHTML = '<table><thead><tr><th>Amount</th><th>Status</th><th>Type</th><th>Date</th></tr></thead><tbody>' + data.transactions.map(function (item) { return '<tr><td>KSh ' + escapeHtml(Number(item.amount).toLocaleString()) + '</td><td>' + escapeHtml(item.status) + '</td><td>' + escapeHtml(item.type) + '</td><td>' + escapeHtml(new Date(item.created_at).toLocaleDateString()) + '</td></tr>'; }).join('') + '</tbody></table>';
-        document.getElementById('jobsTable').innerHTML = '<table><thead><tr><th>Title</th><th>Program</th><th>Type</th><th>Reward</th><th>Action</th></tr></thead><tbody>' + (data.jobs && data.jobs.length ? data.jobs.map(function (job) { return '<tr><td>' + escapeHtml(job.title) + '</td><td>' + escapeHtml(data.programs.find(function (program) { return program.id === job.program_id; }) ? data.programs.find(function (program) { return program.id === job.program_id; }).name : 'Unknown') + '</td><td>' + escapeHtml(job.category === 'hotel_review' ? 'Hotel review' : 'AI training') + '</td><td>KSh ' + escapeHtml(Number(job.reward).toLocaleString()) + '</td><td><button class="delete-job-button" data-job-id="' + escapeHtml(job.id) + '">Delete</button></td></tr>'; }).join('') : '<tr><td colspan="5">No published tasks yet.</td></tr>') + '</tbody></table>';
-        document.querySelectorAll('.grant-button').forEach(function (button) { button.addEventListener('click', async function () { var select = document.querySelector('.grant-program[data-user-id="' + button.dataset.userId + '"]'); button.disabled = true; var grant = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/grant-access', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({ userId: button.dataset.userId, programSlug: select.value }) }); var result = await grant.json(); document.getElementById('grantStatus').textContent = grant.ok ? (result.status === 'already_active' ? 'That program is already active for this user.' : 'Access granted successfully.') : (result.error || 'Unable to grant access.'); button.disabled = false; }); });
-        document.querySelectorAll('.delete-job-button').forEach(function (button) { button.addEventListener('click', async function () { if (!confirm('Delete this task?')) return; var response = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/jobs/' + encodeURIComponent(button.dataset.jobId), { method: 'DELETE', headers: { Authorization: 'Bearer ' + session.access_token } }); var payload = await response.json(); document.getElementById('jobStatus').textContent = response.ok ? 'Task deleted successfully.' : (payload.error || 'Unable to delete task.'); if (response.ok) { button.closest('tr').remove(); } } }); });
-        document.getElementById('jobForm').onsubmit = async function (event) { event.preventDefault(); var category = document.getElementById('jobCategory').value; var imageText = document.getElementById('jobImage').value; var result = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({ programSlug: document.getElementById('jobProgram').value, category: category, title: document.getElementById('jobTitle').value, description: document.getElementById('jobDescription').value, imageUrl: category === 'hotel_review' ? imageText : '', imageUrls: category === 'hotel_review' ? imageText.split(/\r?\n|,/) : [], externalUrl: document.getElementById('jobUrl').value, reward: Number(document.getElementById('jobReward').value) }) }); var payload = await result.json(); document.getElementById('jobStatus').textContent = result.ok ? 'Job published successfully.' : (payload.error || 'Unable to publish job.'); if (result.ok) { document.getElementById('jobForm').reset(); location.reload(); } };
-      } catch (error) { document.getElementById('error').textContent = error.message; }
+        var response = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/overview', {
+          headers: { Authorization: 'Bearer ' + session.access_token }
+        });
+        var data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load admin data.');
+
+        document.getElementById('users').textContent = data.metrics.users;
+        document.getElementById('referrals').textContent = data.metrics.referrals;
+        document.getElementById('payments').textContent = data.metrics.successfulPayments;
+        document.getElementById('revenue').textContent = Number(data.metrics.revenue).toLocaleString();
+
+        var programOptions = data.programs.map(function (program) {
+          return '<option value="' + escapeHtml(program.slug) + '">' + escapeHtml(program.name) + '</option>';
+        }).join('');
+        document.getElementById('jobProgram').innerHTML = programOptions;
+
+        document.getElementById('usersTable').innerHTML = '<table><thead><tr><th>Username</th><th>Phone</th><th>Country</th><th>Joined</th><th>Grant access</th></tr></thead><tbody>' +
+          data.users.map(function (user) {
+            var grantOptions = data.programs.filter(function (program) { return program.is_active; }).map(function (program) {
+              return '<option value="' + escapeHtml(program.slug) + '">' + escapeHtml(program.name) + '</option>';
+            }).join('');
+            return '<tr><td>' + escapeHtml(user.username) + '</td><td>' + escapeHtml(user.phone) + '</td><td>' + escapeHtml(user.country) + '</td><td>' + escapeHtml(new Date(user.created_at).toLocaleDateString()) + '</td><td><select class="grant-program" data-user-id="' + escapeHtml(user.id) + '">' + grantOptions + '</select><button class="grant-button" data-user-id="' + escapeHtml(user.id) + '">Grant</button></td></tr>';
+          }).join('') + '</tbody></table>';
+
+        document.getElementById('transactionsTable').innerHTML = '<table><thead><tr><th>Amount</th><th>Status</th><th>Type</th><th>Date</th></tr></thead><tbody>' +
+          data.transactions.map(function (item) {
+            return '<tr><td>' + formatMoney(item.amount) + '</td><td>' + escapeHtml(item.status) + '</td><td>' + escapeHtml(item.type) + '</td><td>' + escapeHtml(new Date(item.created_at).toLocaleDateString()) + '</td></tr>';
+          }).join('') + '</tbody></table>';
+
+        document.getElementById('jobsTable').innerHTML = '<table><thead><tr><th>Title</th><th>Program</th><th>Type</th><th>Reward</th><th>Action</th></tr></thead><tbody>' +
+          (data.jobs && data.jobs.length ? data.jobs.map(function (job) {
+            var program = (data.programs || []).find(function (row) { return row.id === job.program_id; }) || {};
+            return '<tr><td>' + escapeHtml(job.title) + '</td><td>' + escapeHtml(program.name || 'Unknown') + '</td><td>' + escapeHtml(job.category === 'hotel_review' ? 'Hotel review' : 'AI training') + '</td><td>' + formatMoney(job.reward) + '</td><td><button class="delete-job-button" data-job-id="' + escapeHtml(job.id) + '">Delete</button></td></tr>';
+          }).join('') : '<tr><td colspan="5">No published tasks yet.</td></tr>') + '</tbody></table>';
+
+        var withdrawalRows = (data.withdrawals && data.withdrawals.length)
+          ? data.withdrawals.map(function (item) {
+              var user = (data.users || []).find(function (row) { return row.id === item.user_id; }) || {};
+              var status = item.status || 'pending';
+              var actionCell = item.status === 'pending'
+                ? '<button class="mini-btn approve-withdrawal" data-id="' + escapeHtml(item.id) + '">Approve</button><button class="reject-withdrawal" data-id="' + escapeHtml(item.id) + '">Reject</button>'
+                : '—';
+              return '<tr><td>' + escapeHtml(user.username || item.user_id) + '</td><td>' + formatMoney(item.amount) + '</td><td>' + escapeHtml(item.phone || '-') + '</td><td><span class="status-pill ' + escapeHtml(status) + '">' + escapeHtml(status) + '</span></td><td>' + escapeHtml(new Date(item.requested_at).toLocaleDateString()) + '</td><td>' + actionCell + '</td></tr>';
+            }).join('')
+          : '<tr><td colspan="6">No withdrawal requests yet.</td></tr>';
+        document.getElementById('withdrawalsTable').innerHTML = '<table><thead><tr><th>User</th><th>Amount</th><th>Phone</th><th>Status</th><th>Requested</th><th>Actions</th></tr></thead><tbody>' + withdrawalRows + '</tbody></table>';
+
+        document.querySelectorAll('.grant-button').forEach(function (button) {
+          button.addEventListener('click', async function () {
+            var select = document.querySelector('.grant-program[data-user-id="' + button.dataset.userId + '"]');
+            button.disabled = true;
+            var grant = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/grant-access', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + session.access_token
+              },
+              body: JSON.stringify({ userId: button.dataset.userId, programSlug: select.value })
+            });
+            var result = await grant.json();
+            document.getElementById('grantStatus').textContent = grant.ok ? (result.status === 'already_active' ? 'That program is already active for this user.' : 'Access granted successfully.') : (result.error || 'Unable to grant access.');
+            button.disabled = false;
+          });
+        });
+
+        document.querySelectorAll('.delete-job-button').forEach(function (button) {
+          button.addEventListener('click', async function () {
+            if (!confirm('Delete this task?')) return;
+            var response = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/jobs/' + encodeURIComponent(button.dataset.jobId), {
+              method: 'DELETE',
+              headers: { Authorization: 'Bearer ' + session.access_token }
+            });
+            var payload = await response.json();
+            document.getElementById('jobStatus').textContent = response.ok ? 'Task deleted successfully.' : (payload.error || 'Unable to delete task.');
+            if (response.ok) {
+              button.closest('tr').remove();
+            }
+          });
+        });
+
+        document.querySelectorAll('.approve-withdrawal').forEach(function (button) {
+          button.addEventListener('click', async function () {
+            var response = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/withdrawals/' + encodeURIComponent(button.dataset.id) + '/approve', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + session.access_token }
+            });
+            var payload = await response.json();
+            document.getElementById('jobStatus').textContent = response.ok ? 'Withdrawal approved and deducted from the worker wallet.' : (payload.error || 'Unable to approve withdrawal.');
+            if (response.ok) {
+              location.reload();
+            }
+          });
+        });
+
+        document.querySelectorAll('.reject-withdrawal').forEach(function (button) {
+          button.addEventListener('click', async function () {
+            var response = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/withdrawals/' + encodeURIComponent(button.dataset.id) + '/reject', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer ' + session.access_token
+              },
+              body: JSON.stringify({ note: 'Rejected by admin' })
+            });
+            var payload = await response.json();
+            document.getElementById('jobStatus').textContent = response.ok ? 'Withdrawal rejected.' : (payload.error || 'Unable to reject withdrawal.');
+            if (response.ok) {
+              location.reload();
+            }
+          });
+        });
+
+        document.getElementById('jobForm').onsubmit = async function (event) {
+          event.preventDefault();
+          var category = document.getElementById('jobCategory').value;
+          var imageText = document.getElementById('jobImage').value;
+          var result = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/jobs', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + session.access_token
+            },
+            body: JSON.stringify({
+              programSlug: document.getElementById('jobProgram').value,
+              category: category,
+              title: document.getElementById('jobTitle').value,
+              description: document.getElementById('jobDescription').value,
+              imageUrl: category === 'hotel_review' ? imageText : '',
+              imageUrls: category === 'hotel_review' ? imageText.split(/\r?\n|,/) : [],
+              externalUrl: document.getElementById('jobUrl').value,
+              reward: Number(document.getElementById('jobReward').value)
+            })
+          });
+          var payload = await result.json();
+          document.getElementById('jobStatus').textContent = result.ok ? 'Job published successfully.' : (payload.error || 'Unable to publish job.');
+          if (result.ok) {
+            document.getElementById('jobForm').reset();
+            location.reload();
+          }
+        };
+      } catch (error) {
+        document.getElementById('error').textContent = error.message;
+      }
     })();
   </script>
 </body>
