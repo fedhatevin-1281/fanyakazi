@@ -67,15 +67,14 @@
         var response = await fetch((window.FANYAKAZI_CONFIG.apiBaseUrl || '') + '/api/work/overview', {
           headers: { Authorization: 'Bearer ' + session.access_token }
         });
-        if (response.ok) {
-          var payload = await response.json();
-          if (payload && payload.programs && payload.programs.length) {
-            window.location.href = '/work';
-            return;
-          }
+        var payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'Unable to check program access.');
+        if (payload && payload.programs && payload.programs.length) {
+          window.location.href = '/work';
+          return;
         }
       } catch (error) {
-        // Continue to activation page if the status check fails.
+        notice.textContent = error.message || 'Unable to check program access.';
       }
       document.getElementById('accountEmail').textContent = session.user.email || 'Signed-in member';
 

@@ -234,9 +234,14 @@ app.post('/api/admin/grant-access', async (req, res) => {
       .from('profiles').select('id').eq('id', userId).single();
     if (profileError || !profile) return res.status(404).json({ error: 'User not found' });
     const { data: existing, error: existingError } = await supabaseAdmin
-      .from('user_programs').select('id').eq('user_id', userId).eq('program_id', program.id).maybeSingle();
+      .from('user_programs').select('id, is_active').eq('user_id', userId).eq('program_id', program.id).maybeSingle();
     if (existingError) throw existingError;
-    if (existing) return res.json({ status: 'already_active' });
+    if (existing && existing.is_active) return res.json({ status: 'already_active' });
+    if (existing && !existing.is_active) {
+      const { error: reactivateError } = await supabaseAdmin.from('user_programs').update({ is_active: true }).eq('id', existing.id);
+      if (reactivateError) throw reactivateError;
+      return res.json({ status: 'reactivated', programSlug });
+    }
     const reference = `admin_grant_${userId}_${program.id}`;
     const { data: transaction, error: transactionError } = await supabaseAdmin.from('transactions').insert({
       user_id: userId, program_id: program.id, type: 'program_unlock', amount: Number(program.unlock_amount),

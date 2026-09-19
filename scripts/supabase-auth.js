@@ -68,11 +68,11 @@
       var response = await fetch((config.apiBaseUrl || '') + '/api/work/overview', {
         headers: { Authorization: 'Bearer ' + session.access_token }
       });
-      if (!response.ok) return;
       var payload = await response.json();
+      if (!response.ok) return;
       window.location.href = payload && payload.programs && payload.programs.length ? '/work' : '../user/activate.html';
     } catch (error) {
-      window.location.href = '../user/activate.html';
+      return;
     }
   }
 
