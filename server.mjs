@@ -103,6 +103,11 @@ async function awardTaskReward(userId, programId, jobId, amount, description) {
   return { balance: nextBalance, lifetime_earned: nextLifetime };
 }
 
+function normalizeImageUrls(value) {
+  const raw = Array.isArray(value) ? value : (typeof value === 'string' ? value.split(/\r?\n|,/) : []);
+  return [...new Set(raw.map((item) => String(item || '').trim()).filter(Boolean))];
+}
+
 async function paystackRequest(path, body) {
   if (!process.env.PAYSTACK_SECRET_KEY) throw new Error('Payment service is not configured');
   const response = await fetch(`https://api.paystack.co/${path}`, {
@@ -192,13 +197,14 @@ app.get('/api/admin/overview', async (req, res) => {
   try {
     const user = await authenticatedAdmin(req, res);
     if (!user) return;
-    const [usersResult, referralsResult, transactionsResult, programsResult] = await Promise.all([
+    const [usersResult, referralsResult, transactionsResult, programsResult, jobsResult] = await Promise.all([
       supabaseAdmin.from('profiles').select('id, username, phone, country, role, is_active, created_at, referral_code').order('created_at', { ascending: false }).limit(100),
       supabaseAdmin.from('referrals').select('id, referrer_id, referred_id, created_at').order('created_at', { ascending: false }).limit(100),
       supabaseAdmin.from('transactions').select('id, user_id, program_id, amount, currency, status, type, paystack_reference, created_at, paid_at').order('created_at', { ascending: false }).limit(100),
-      supabaseAdmin.from('programs').select('id, name, slug, unlock_amount, is_active').order('name')
+      supabaseAdmin.from('programs').select('id, name, slug, unlock_amount, is_active').order('name'),
+      supabaseAdmin.from('jobs').select('id, program_id, category, title, description, image_url, image_urls, external_url, reward, created_at, created_by').eq('created_by', user.id).order('created_at', { ascending: false })
     ]);
-    const failure = [usersResult, referralsResult, transactionsResult, programsResult].find((result) => result.error);
+    const failure = [usersResult, referralsResult, transactionsResult, programsResult, jobsResult].find((result) => result.error);
     if (failure) throw failure.error;
     const transactions = transactionsResult.data || [];
     const successful = transactions.filter((transaction) => transaction.status === 'success');
@@ -209,6 +215,7 @@ app.get('/api/admin/overview', async (req, res) => {
       referrals: referralsResult.data || [],
       transactions,
       programs: programsResult.data || [],
+      jobs: jobsResult.data || [],
       metrics: {
         users: usersResult.data?.length || 0,
         referrals: referralsResult.data?.length || 0,
@@ -218,6 +225,26 @@ app.get('/api/admin/overview', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Unable to load admin activity' });
+  }
+});
+
+app.delete('/api/admin/jobs/:jobId', async (req, res) => {
+  try {
+    const admin = await authenticatedAdmin(req, res);
+    if (!admin) return;
+    const { jobId } = req.params;
+    const { data: job, error: lookupError } = await supabaseAdmin
+      .from('jobs').select('id, created_by').eq('id', jobId).maybeSingle();
+    if (lookupError) throw lookupError;
+    if (!job) return res.status(404).json({ error: 'Task not found' });
+    if (job.created_by && job.created_by !== admin.id) {
+      return res.status(403).json({ error: 'You can only delete tasks you created' });
+    }
+    const { error: deleteError } = await supabaseAdmin.from('jobs').delete().eq('id', jobId);
+    if (deleteError) throw deleteError;
+    res.json({ status: 'deleted', jobId });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to delete task' });
   }
 });
 
@@ -342,25 +369,29 @@ app.post('/api/admin/jobs', async (req, res) => {
   try {
     const admin = await authenticatedAdmin(req, res);
     if (!admin) return;
-    const { programSlug, category, title, description, imageUrl, externalUrl, reward } = req.body || {};
+    const { programSlug, category, title, description, imageUrl, imageUrls, externalUrl, reward } = req.body || {};
     if (!programSlug || !category || !title || !description) return res.status(400).json({ error: 'Program, category, title and description are required' });
     if ((category === 'hotel_review' && programSlug !== 'hotel-reviews') || (category === 'ai_training' && programSlug !== 'ai-training')) return res.status(400).json({ error: 'Category does not match the selected program' });
-    if (category === 'hotel_review' && !imageUrl) return res.status(400).json({ error: 'Hotel review jobs require an image URL' });
+    const normalizedImages = normalizeImageUrls(imageUrls || imageUrl);
+    if (category === 'hotel_review' && !normalizedImages.length) return res.status(400).json({ error: 'Hotel review jobs require at least one image URL' });
     if (category === 'ai_training' && !externalUrl) return res.status(400).json({ error: 'AI training jobs require a work link' });
     const { data: program, error: programError } = await supabaseAdmin.from('programs').select('id').eq('slug', programSlug).single();
     if (programError || !program) return res.status(404).json({ error: 'Program not found' });
     const defaultReward = category === 'hotel_review' ? 200 : 500;
-    const { data: job, error } = await supabaseAdmin.from('jobs').insert({
+    const insertPayload = {
       program_id: program.id,
       category,
       title: String(title).trim(),
       description: String(description).trim(),
-      image_url: imageUrl || null,
+      image_url: normalizedImages[0] || null,
       external_url: externalUrl || null,
-      reward: Number(reward) || defaultReward
-    }).select('id').single();
+      reward: Number(reward) || defaultReward,
+      created_by: admin.id
+    };
+    if (normalizedImages.length > 1) insertPayload.image_urls = normalizedImages;
+    const { data: job, error } = await supabaseAdmin.from('jobs').insert(insertPayload).select('id').single();
     if (error) throw error;
-    res.json({ status: 'created', job, reward: Number(reward) || defaultReward });
+    res.json({ status: 'created', job, reward: Number(reward) || defaultReward, imageUrls: normalizedImages });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Unable to create job' });
   }

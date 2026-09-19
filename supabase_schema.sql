@@ -292,10 +292,12 @@ alter table public.transactions add constraint transaction_program_required
 create table if not exists public.jobs (
   id uuid primary key default gen_random_uuid(),
   program_id uuid not null references public.programs(id) on delete cascade,
+  created_by uuid references public.profiles(id) on delete set null,
   category text not null check (category in ('hotel_review', 'ai_training')),
   title text not null,
   description text not null default '',
   image_url text,
+  image_urls text[] default null,
   external_url text,
   reward numeric(12,2) not null default 500 check (reward > 0),
   is_active boolean not null default true,

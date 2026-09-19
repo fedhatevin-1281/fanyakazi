@@ -174,6 +174,42 @@
       background: linear-gradient(135deg, rgba(217,0,0,0.2), rgba(255,255,255,0.04));
       display: block;
     }
+    .slideshow {
+      position: relative;
+      width: 100%;
+      height: 180px;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(217,0,0,0.2), rgba(255,255,255,0.04));
+    }
+    .slideshow .slide {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .slideshow .slide.active {
+      opacity: 1;
+    }
+    .slideshow-nav {
+      position: absolute;
+      inset: auto 10px 10px 10px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .slideshow-nav button {
+      pointer-events: auto;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      background: rgba(0,0,0,0.45);
+      color: var(--text);
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+    }
     .job-body {
       display: flex;
       flex-direction: column;
@@ -450,6 +486,19 @@
         });
       }
 
+      function getJobImages(job) {
+        if (job && Array.isArray(job.image_urls) && job.image_urls.length) {
+          return job.image_urls.filter(Boolean);
+        }
+        if (job && Array.isArray(job.image_url)) {
+          return job.image_url.filter(Boolean);
+        }
+        if (job && typeof job.image_url === 'string' && job.image_url.trim()) {
+          return job.image_url.split(/\r?\n|,/).map(function (item) { return item.trim(); }).filter(Boolean);
+        }
+        return [];
+      }
+
       function renderJobs() {
         var filtered = (state.jobs || []).filter(function (job) {
           return state.activeProgram === 'all' || job.program_id === state.activeProgram;
@@ -474,16 +523,28 @@
             ? '<span class="done-pill">Completed</span>'
             : '<button class="job-action primary" type="button" data-job-id="' + escapeHtml(job.id) + '" data-kind="' + escapeHtml(job.category) + '">Complete task • ' + escapeHtml(reward) + '</button>';
 
-          var image = job.category === 'hotel_review' && job.image_url
-            ? '<img class="job-image" src="' + escapeHtml(job.image_url) + '" alt="' + escapeHtml(job.title) + '" />'
-            : '';
+          var imageUrls = getJobImages(job);
+          var imageMarkup = '';
+          if (job.category === 'hotel_review' && imageUrls.length) {
+            if (imageUrls.length > 1) {
+              var slides = imageUrls.map(function (url, index) {
+                return '<img class="slide ' + (index === 0 ? 'active' : '') + '" src="' + escapeHtml(url) + '" alt="' + escapeHtml(job.title) + '" />';
+              }).join('');
+              imageMarkup = '<div class="slideshow" data-job-id="' + escapeHtml(job.id) + '">' +
+                '<div class="slides">' + slides + '</div>' +
+                '<div class="slideshow-nav"><button type="button" class="slide-prev" data-job-id="' + escapeHtml(job.id) + '" aria-label="Previous image">◀</button><button type="button" class="slide-next" data-job-id="' + escapeHtml(job.id) + '" aria-label="Next image">▶</button></div>' +
+              '</div>';
+            } else {
+              imageMarkup = '<img class="job-image" src="' + escapeHtml(imageUrls[0]) + '" alt="' + escapeHtml(job.title) + '" />';
+            }
+          }
 
           var link = job.category === 'ai_training' && job.external_url
             ? '<a href="' + escapeHtml(job.external_url) + '" target="_blank" rel="noopener noreferrer">Open task link</a>'
             : '';
 
           return '<article class="job ' + (job.category === 'hotel_review' ? 'hotel' : 'ai') + (submission ? ' done' : '') + '">' +
-            image +
+            imageMarkup +
             '<div class="job-body">' +
               '<div class="job-tag">' + icon + ' ' + escapeHtml(label) + '</div>' +
               '<h2>' + escapeHtml(job.title) + '</h2>' +
@@ -498,8 +559,24 @@
         }).join('');
 
         jobsEl.querySelectorAll('[data-job-id]').forEach(function (button) {
-          button.addEventListener('click', function () {
-            openTaskModal(button.dataset.jobId, button.dataset.kind);
+          if (button.classList.contains('job-action')) {
+            button.addEventListener('click', function () {
+              openTaskModal(button.dataset.jobId, button.dataset.kind);
+            });
+          }
+        });
+
+        jobsEl.querySelectorAll('.slide-prev, .slide-next').forEach(function (button) {
+          button.addEventListener('click', function (event) {
+            event.preventDefault();
+            var slideshow = button.closest('.slideshow');
+            var slides = slideshow ? slideshow.querySelectorAll('.slide') : [];
+            if (!slides.length) return;
+            var currentIndex = Array.from(slides).findIndex(function (slide) { return slide.classList.contains('active'); });
+            var nextIndex = button.classList.contains('slide-next') ? (currentIndex + 1) % slides.length : (currentIndex - 1 + slides.length) % slides.length;
+            slides.forEach(function (slide, index) {
+              slide.classList.toggle('active', index === nextIndex);
+            });
           });
         });
       }
