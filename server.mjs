@@ -383,7 +383,7 @@ app.post('/api/work/withdrawals/request', async (req, res) => {
     if (!user) return;
     const { amount, phone, note } = req.body || {};
     if (!isFridayWithdrawalDay()) {
-      return res.status(400).json({ error: 'Withdrawals are only allowed every Friday.' });
+      return res.status(400).json({ error: 'Payments are issued on Fridays.' });
     }
     const withdrawAmount = Number(amount);
     if (!Number.isFinite(withdrawAmount) || withdrawAmount <= 0) {

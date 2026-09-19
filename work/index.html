@@ -590,7 +590,7 @@
 
         if (!state.withdrawals || !state.withdrawals.length) {
           withdrawalHistory.innerHTML = '<div class="empty-state">No withdrawal requests yet.</div>';
-          setWithdrawalNotice(allowed ? 'Withdrawal requests open every Friday for approved member payouts.' : 'Withdrawals are only allowed every Friday.', !allowed);
+          setWithdrawalNotice(allowed ? 'Withdrawal requests open every Friday for approved member payouts.' : 'Payments are issued on Fridays.', !allowed);
           return;
         }
 
@@ -599,7 +599,7 @@
         }).join('') + '</tbody></table>';
 
         if (!allowed) {
-          setWithdrawalNotice('Withdrawals are only allowed every Friday.', true);
+          setWithdrawalNotice(' Payments are issued on Fridays.', true);
         } else if (state.wallet && Number(state.wallet.balance) <= 0) {
           setWithdrawalNotice('Your wallet is empty. Complete more work before requesting a payout.', true);
         } else {
@@ -880,7 +880,7 @@
         var note = withdrawNote.value.trim();
 
         if (!isFridayWithdrawalDay()) {
-          setWithdrawalNotice('Withdrawals are only allowed every Friday.', true);
+          setWithdrawalNotice('Payments are issued on Fridays.', true);
           return;
         }
 
