@@ -146,15 +146,10 @@ body {
 }
 .brand-ring {
     width: 36px; height: 36px; flex-shrink: 0;
-    border-radius: 50%;
-    border: 2px solid var(--P);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 12px rgba(var(--Pr),.3);
-    animation: spin 8s linear infinite;
 }
-@keyframes spin { to { filter: hue-rotate(360deg); } }
-.brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--P); }
-.brand-logo-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.brand-dot { display: none; }
+.brand-logo-img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .brand-text { flex: 1; min-width: 0; }
 .brand-name { font-size: 15px; font-weight: 800; color: var(--txt); letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-sub  { font-size: 10px; color: var(--txt2); font-weight: 600; letter-spacing: .5px; margin-top: 1px; }
