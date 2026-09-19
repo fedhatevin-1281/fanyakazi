@@ -326,6 +326,14 @@
     .status-pill.pending { background: rgba(255, 194, 67, 0.12); color: #f7d56a; }
     .status-pill.approved { background: rgba(141, 179, 85, 0.12); color: var(--olive); }
     .status-pill.rejected { background: rgba(217, 0, 0, 0.12); color: #ff8e8e; }
+    .view-hidden { display: none; }
+    .nav-icon {
+      display: inline-flex;
+      width: 20px;
+      justify-content: center;
+      font-size: 16px;
+      line-height: 1;
+    }
     .notice {
       min-height: 24px;
       margin-top: 18px;
@@ -420,7 +428,17 @@
         <img src="../images/Gemini_Generated_Image_ax4xpuax4xpuax4x-removebg-preview.png" alt="Fanyakazi" />
         <span>FANYAKAZI</span>
       </a>
-      <nav class="nav" id="programNav"></nav>
+      <nav class="nav">
+        <button class="nav-item active" id="workNav" type="button">
+          <span class="nav-icon" aria-hidden="true">▣</span>
+          <span class="nav-label">Work</span>
+        </button>
+        <button class="nav-item" id="walletNav" type="button">
+          <span class="nav-icon" aria-hidden="true">◎</span>
+          <span class="nav-label">Wallets</span>
+        </button>
+        <div id="programNav"></div>
+      </nav>
     </aside>
 
     <main class="main">
@@ -436,36 +454,41 @@
       </div>
 
       <section class="content">
-        <div class="wallet">
-          <div class="stat">
-            <span>Available balance</span>
-            <b id="balance">KSh 0</b>
-          </div>
-          <div class="stat">
-            <span>Lifetime earned</span>
-            <b id="earned">KSh 0</b>
-          </div>
+        <div id="workView">
+          <div class="jobs" id="jobs">Loading work...</div>
         </div>
 
-        <div class="wallet-panel">
-          <section class="panel-box">
-            <h3>Request withdrawal</h3>
-            <div class="withdraw-form">
-              <input id="withdrawAmount" type="number" min="1" step="1" placeholder="Withdrawal amount (KES)" />
-              <input id="withdrawPhone" type="tel" placeholder="Phone number for payout" />
-              <textarea id="withdrawNote" placeholder="Optional note for the admin"></textarea>
-              <button class="primary-btn" id="requestWithdrawal" type="button">Request withdrawal</button>
+        <div id="walletView" class="view-hidden">
+          <div class="wallet">
+            <div class="stat">
+              <span>Available balance</span>
+              <b id="balance">KSh 0</b>
             </div>
-            <p class="notice" id="withdrawalNotice"></p>
-          </section>
+            <div class="stat">
+              <span>Lifetime earned</span>
+              <b id="earned">KSh 0</b>
+            </div>
+          </div>
 
-          <section class="panel-box">
-            <h3>Withdrawal history</h3>
-            <div id="withdrawalHistory" class="empty-state">No withdrawal requests yet.</div>
-          </section>
+          <div class="wallet-panel">
+            <section class="panel-box">
+              <h3>Request withdrawal</h3>
+              <div class="withdraw-form">
+                <input id="withdrawAmount" type="number" min="1" step="1" placeholder="Withdrawal amount (KES)" />
+                <input id="withdrawPhone" type="tel" placeholder="Phone number for payout" />
+                <textarea id="withdrawNote" placeholder="Optional note for the admin"></textarea>
+                <button class="primary-btn" id="requestWithdrawal" type="button">Request withdrawal</button>
+              </div>
+              <p class="notice" id="withdrawalNotice"></p>
+            </section>
+
+            <section class="panel-box">
+              <h3>Withdrawal history</h3>
+              <div id="withdrawalHistory" class="empty-state">No withdrawal requests yet.</div>
+            </section>
+          </div>
         </div>
 
-        <div class="jobs" id="jobs">Loading work...</div>
         <p class="notice" id="notice" role="status"></p>
       </section>
     </main>
@@ -509,10 +532,16 @@
         jobs: [],
         submissions: [],
         withdrawals: [],
-        wallet: { balance: 0, lifetime_earned: 0 }
+        wallet: { balance: 0, lifetime_earned: 0 },
+        activeView: 'work'
       };
 
       var jobsEl = document.getElementById('jobs');
+      var workViewEl = document.getElementById('workView');
+      var walletViewEl = document.getElementById('walletView');
+      var headingEl = document.getElementById('heading');
+      var workNavEl = document.getElementById('workNav');
+      var walletNavEl = document.getElementById('walletNav');
       var noticeEl = document.getElementById('notice');
       var navEl = document.getElementById('programNav');
       var balanceEl = document.getElementById('balance');
@@ -531,6 +560,20 @@
       var withdrawNote = document.getElementById('withdrawNote');
       var requestWithdrawalBtn = document.getElementById('requestWithdrawal');
 
+      function setActiveView(view) {
+        state.activeView = view;
+        var walletActive = view === 'wallets';
+        workViewEl.classList.toggle('view-hidden', walletActive);
+        walletViewEl.classList.toggle('view-hidden', !walletActive);
+        workNavEl.classList.toggle('active', !walletActive);
+        walletNavEl.classList.toggle('active', walletActive);
+        headingEl.textContent = walletActive ? 'Wallets' : 'Available work';
+        if (walletActive) {
+          setWithdrawalNotice('', false);
+          renderWithdrawalHistory();
+        }
+      }
+
       function isFridayWithdrawalDay() {
         return new Date().getDay() === 5;
       }
@@ -541,14 +584,16 @@
       }
 
       function renderWithdrawalHistory() {
+        var allowed = isFridayWithdrawalDay();
+        requestWithdrawalBtn.disabled = !allowed;
+        requestWithdrawalBtn.title = allowed ? 'Request a payout for this Friday' : 'Withdrawals are only allowed every Friday';
+
         if (!state.withdrawals || !state.withdrawals.length) {
           withdrawalHistory.innerHTML = '<div class="empty-state">No withdrawal requests yet.</div>';
+          setWithdrawalNotice(allowed ? 'Withdrawal requests open every Friday for approved member payouts.' : 'Withdrawals are only allowed every Friday.', !allowed);
           return;
         }
 
-        const allowed = isFridayWithdrawalDay();
-        requestWithdrawalBtn.disabled = !allowed;
-        requestWithdrawalBtn.title = allowed ? 'Request a payout for this Friday' : 'Withdrawals are only allowed every Friday';
         withdrawalHistory.innerHTML = '<table class="withdrawal-table"><thead><tr><th>Amount</th><th>Phone</th><th>Note</th><th>Status</th><th>Date</th></tr></thead><tbody>' + state.withdrawals.map(function (item) {
           return '<tr><td>' + escapeHtml(formatKES(item.amount)) + '</td><td>' + escapeHtml(item.phone || '-') + '</td><td>' + escapeHtml(item.note || '-') + '</td><td><span class="status-pill ' + escapeHtml(item.status || 'pending') + '">' + escapeHtml((item.status || 'pending')) + '</span></td><td>' + escapeHtml(item.requested_at ? new Date(item.requested_at).toLocaleDateString() : '-') + '</td></tr>';
         }).join('') + '</tbody></table>';
@@ -580,19 +625,20 @@
       function renderPrograms() {
         var programs = state.programs || [];
         if (!programs.length) {
-          navEl.innerHTML = '<button type="button"><b>•</b><span class="nav-label">No active programs</span></button>';
+          navEl.innerHTML = '<button type="button"><span class="nav-icon" aria-hidden="true">•</span><span class="nav-label">No active programs</span></button>';
           return;
         }
 
-        var html = '<button type="button" class="nav-item ' + (state.activeProgram === 'all' ? 'active' : '') + '" data-program="all"><b>⌂</b><span class="nav-label">All tasks</span></button>';
+        var html = '<button type="button" class="nav-item ' + (state.activeProgram === 'all' && state.activeView === 'work' ? 'active' : '') + '" data-program="all"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">All tasks</span></button>';
         html += programs.map(function (program) {
-          var icon = program.slug === 'hotel-reviews' ? '🏨' : program.slug === 'ai-training' ? '🤖' : '🎯';
-          return '<button type="button" class="nav-item ' + (state.activeProgram === program.id ? 'active' : '') + '" data-program="' + escapeHtml(program.id) + '"><b>' + icon + '</b><span class="nav-label">' + escapeHtml(program.name) + '</span></button>';
+          var icon = program.slug === 'hotel-reviews' ? '▦' : program.slug === 'ai-training' ? '◈' : '◆';
+          return '<button type="button" class="nav-item ' + (state.activeProgram === program.id && state.activeView === 'work' ? 'active' : '') + '" data-program="' + escapeHtml(program.id) + '"><span class="nav-icon" aria-hidden="true">' + icon + '</span><span class="nav-label">' + escapeHtml(program.name) + '</span></button>';
         }).join('');
 
         navEl.innerHTML = html;
         navEl.querySelectorAll('.nav-item').forEach(function (button) {
           button.addEventListener('click', function () {
+            setActiveView('work');
             state.activeProgram = button.dataset.program;
             renderPrograms();
             renderJobs();
@@ -631,7 +677,7 @@
         jobsEl.innerHTML = filtered.map(function (job) {
           var submission = map[job.id];
           var label = job.category === 'hotel_review' ? 'Hotel review' : 'AI training';
-          var icon = job.category === 'hotel_review' ? '🏨' : '🤖';
+          var icon = job.category === 'hotel_review' ? '▦' : '◈';
           var reward = formatKES(Number(job.reward || (job.category === 'hotel_review' ? 200 : 500)));
           var action = submission
             ? '<span class="done-pill">Completed</span>'
@@ -724,6 +770,17 @@
 
       document.getElementById('collapse').addEventListener('click', function () {
         document.getElementById('side').classList.toggle('collapsed');
+      });
+
+      workNavEl.addEventListener('click', function () {
+        setActiveView('work');
+        renderPrograms();
+        renderJobs();
+      });
+
+      walletNavEl.addEventListener('click', function () {
+        setActiveView('wallets');
+        renderPrograms();
       });
 
       document.getElementById('signout').addEventListener('click', async function () {
