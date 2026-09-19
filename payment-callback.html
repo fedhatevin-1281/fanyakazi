@@ -18,7 +18,8 @@
   <script src="./scripts/supabase-auth.js"></script>
   <script>
     (async function () {
-      var reference = new URLSearchParams(window.location.search).get('reference');
+      var query = new URLSearchParams(window.location.search);
+      var reference = query.get('reference') || query.get('trxref');
       var result = window.fanyakaziSupabase && await window.fanyakaziSupabase.auth.getSession();
       var session = result && result.data.session;
       if (!reference || !session) throw new Error('Your session has expired. Please sign in again.');

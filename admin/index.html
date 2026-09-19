@@ -31,8 +31,8 @@
     (async function () {
       var client = window.supabase.createClient(window.FANYAKAZI_CONFIG.supabaseUrl, window.FANYAKAZI_CONFIG.supabaseAnonKey);
       var sessionResult = await client.auth.getSession(); var session = sessionResult.data.session;
-      if (!session) { window.location.href = './login.php.html'; return; }
-      document.getElementById('logout').onclick = async function () { await client.auth.signOut(); window.location.href = './login.php.html'; };
+      if (!session) { window.location.href = '/admin'; return; }
+      document.getElementById('logout').onclick = async function () { await client.auth.signOut(); window.location.href = '/admin'; };
       try {
         var response = await fetch(window.FANYAKAZI_CONFIG.apiBaseUrl + '/api/admin/overview', { headers: { Authorization: 'Bearer ' + session.access_token } });
         var data = await response.json(); if (!response.ok) throw new Error(data.error || 'Unable to load admin data.');

@@ -1,6 +1,631 @@
-<!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Work Hub | Fanyakazi</title><style>
-:root{color-scheme:dark;--bg:#050505;--panel:#11100f;--panel2:#171513;--line:rgba(255,234,147,.17);--text:#FFEA93;--muted:rgba(255,234,147,.67);--red:#D90000;--olive:#8DB355}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(700px 500px at 100% 0%,rgba(217,0,0,.22),transparent 60%),var(--bg);color:var(--text);font:14px Segoe UI,system-ui,sans-serif}.app{display:flex;min-height:100vh}.side{width:260px;padding:24px 16px;border-right:1px solid var(--line);background:rgba(8,7,7,.9);transition:width .2s}.side.collapsed{width:76px}.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.8px;margin-bottom:38px;white-space:nowrap;overflow:hidden}.brand img{width:38px;height:38px;border-radius:12px;object-fit:cover}.side.collapsed .brand span,.side.collapsed .nav-label{display:none}.nav{display:grid;gap:8px}.nav button{width:100%;padding:12px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--muted);text-align:left;cursor:pointer}.nav button.active,.nav button:hover{background:rgba(217,0,0,.15);border-color:var(--line);color:var(--text)}.nav button b{display:inline-block;width:24px}.main{flex:1;padding:28px clamp(20px,4vw,54px);min-width:0}.top{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:42px}.top h1{margin:4px 0 0;font-size:clamp(28px,4vw,48px)}.eyebrow{color:var(--olive);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase}.icon-btn,.signout{border:1px solid var(--line);border-radius:9px;padding:10px 13px;background:rgba(255,255,255,.05);color:var(--text);cursor:pointer}.content{max-width:1100px}.wallet{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:28px}.stat{min-width:170px;padding:17px 19px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.stat span{display:block;color:var(--muted);font-size:12px}.stat b{display:block;margin-top:7px;font-size:25px}.jobs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}.job{overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--panel);display:flex;flex-direction:column}.job img{width:100%;height:150px;object-fit:cover}.job-body{padding:18px;display:flex;flex-direction:column;min-height:190px}.job h2{font-size:19px;margin:7px 0}.job p{color:var(--muted);line-height:1.6;flex:1;margin:0 0 15px}.job a,.job button{display:inline-block;border:0;border-radius:9px;padding:11px 13px;background:linear-gradient(135deg,var(--red),#8a0000);color:var(--text);font-weight:800;text-align:center;cursor:pointer;text-decoration:none}.job.done{opacity:.7}.job.done button{background:var(--olive);color:#101500}.empty{padding:28px;border:1px dashed var(--line);border-radius:14px;color:var(--muted)}.modal{position:fixed;inset:0;display:none;place-items:center;padding:18px;background:#000b;z-index:4}.modal.open{display:grid}.dialog{width:min(100%,520px);padding:24px;border:1px solid var(--line);border-radius:17px;background:rgba(23,21,19,.96);box-shadow:0 24px 80px #000}.dialog h2{margin-top:0}.dialog textarea{width:100%;min-height:150px;resize:vertical;padding:12px;border:1px solid var(--line);border-radius:9px;background:#0008;color:var(--text);font:inherit}.dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:14px}.dialog button{border:1px solid var(--line);border-radius:9px;padding:10px 14px;background:var(--red);color:var(--text);cursor:pointer}.dialog .cancel{background:transparent}.notice{min-height:20px;color:var(--muted);margin-top:12px}@media(max-width:760px){.side{width:76px}.side .brand span,.side .nav-label{display:none}.main{padding:20px 14px}.top{align-items:flex-start}.top h1{font-size:30px}.jobs{grid-template-columns:1fr}}
-</style></head><body><div class="app"><aside class="side" id="side"><a class="brand" href="../index.html"><img src="../images/Gemini_Generated_Image_ax4xpuax4xpuax4x-removebg-preview.png" alt="Fanyakazi"><span>FANYAKAZI</span></a><nav class="nav" id="nav"><button class="active" data-view="all"><b>⌂</b><span class="nav-label">All work</span></button></nav></aside><main class="main"><div class="top"><div><div class="eyebrow">Member work hub</div><h1 id="heading">Available work</h1></div><div><button class="icon-btn" id="collapse" type="button">☰</button><button class="signout" id="signout" type="button">Sign out</button></div></div><section class="content"><div class="wallet"><div class="stat"><span>Available balance</span><b id="balance">KSh 0</b></div><div class="stat"><span>Lifetime earned</span><b id="earned">KSh 0</b></div></div><div class="jobs" id="jobs">Loading work...</div><p class="notice" id="notice"></p></section></main></div><div class="modal" id="reviewModal"><form class="dialog" id="reviewForm"><h2>Submit your hotel review</h2><p id="reviewTitle"></p><textarea id="reviewText" placeholder="Write your honest review..."></textarea><div class="dialog-actions"><button class="cancel" id="cancelReview" type="button">Cancel</button><button type="submit">Submit review</button></div><p class="notice" id="reviewNotice"></p></form></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../scripts/supabase-config.js"></script><script>
-(async function(){var config=window.FANYAKAZI_CONFIG,client=window.supabase.createClient(config.supabaseUrl,config.supabaseAnonKey),sessionResult=await client.auth.getSession(),session=sessionResult.data.session;if(!session){location.href='../pages/login.php.html';return}var jobs=document.getElementById('jobs'),notice=document.getElementById('notice'),modal=document.getElementById('reviewModal'),reviewJob=null,allJobs=[];document.getElementById('collapse').onclick=function(){document.getElementById('side').classList.toggle('collapsed')};document.getElementById('signout').onclick=async function(){await client.auth.signOut();location.href='../pages/login.php.html'};function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function render(filter){var submissions=data.submissions.reduce(function(map,item){map[item.job_id]=item;return map},{});var list=allJobs.filter(function(job){return filter==='all'||job.program_id===filter});if(!list.length){jobs.innerHTML='<div class="empty">No work is available for this program yet.</div>';return}jobs.innerHTML=list.map(function(job){var sub=submissions[job.id],body='<div class="job-body"><div class="eyebrow">'+esc(job.category==='hotel_review'?'Hotel review':'AI training')+'</div><h2>'+esc(job.title)+'</h2><p>'+esc(job.description)+'</p>';if(job.category==='ai_training')body+=job.external_url?'<a href="'+esc(job.external_url)+'" target="_blank" rel="noopener">Open work link</a>':'<span class="empty">Link unavailable</span>';else body+=sub?'<button class="done" disabled>Completed · KSh '+esc(sub.reward)+'</button>':'<button data-review="'+esc(job.id)+'">Write review · KSh '+esc(job.reward)+'</button>';return '<article class="job '+(sub?'done':'')+'">'+(job.image_url?'<img src="'+esc(job.image_url)+'" alt="">':'')+body+'</div></article>'}).join('');jobs.querySelectorAll('[data-review]').forEach(function(button){button.onclick=function(){reviewJob=allJobs.find(function(job){return job.id===button.dataset.review});document.getElementById('reviewTitle').textContent=reviewJob.title+' · Earn KSh '+reviewJob.reward;document.getElementById('reviewText').value='';document.getElementById('reviewNotice').textContent='';modal.classList.add('open')}})}var data={submissions:[]};var response=await fetch(config.apiBaseUrl+'/api/work/overview',{headers:{Authorization:'Bearer '+session.access_token}});data=await response.json();if(!response.ok){notice.textContent=data.error||'Unable to load work';return}allJobs=data.jobs;document.getElementById('balance').textContent='KSh '+Number(data.wallet.balance).toLocaleString();document.getElementById('earned').textContent='KSh '+Number(data.wallet.lifetime_earned).toLocaleString();data.programs.forEach(function(program){var button=document.createElement('button');button.dataset.view=program.id;button.innerHTML='<b>▸</b><span class="nav-label">'+esc(program.name)+'</span>';document.getElementById('nav').appendChild(button);button.onclick=function(){document.querySelectorAll('#nav button').forEach(function(item){item.classList.remove('active')});button.classList.add('active');document.getElementById('heading').textContent=program.name;render(program.id)}});render('all');document.getElementById('cancelReview').onclick=function(){modal.classList.remove('open')};document.getElementById('reviewForm').onsubmit=async function(event){event.preventDefault();if(!reviewJob)return;var text=document.getElementById('reviewText').value.trim();if(!text){document.getElementById('reviewNotice').textContent='Write a review first.';return}var result=await fetch(config.apiBaseUrl+'/api/work/reviews',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({jobId:reviewJob.id,reviewText:text})});var payload=await result.json();if(!result.ok){document.getElementById('reviewNotice').textContent=payload.error||'Unable to submit review';return}modal.classList.remove('open');notice.textContent='Review approved. You earned KSh '+payload.reward+'.';var refreshed=await fetch(config.apiBaseUrl+'/api/work/overview',{headers:{Authorization:'Bearer '+session.access_token}});data=await refreshed.json();allJobs=data.jobs;document.getElementById('balance').textContent='KSh '+Number(data.wallet.balance).toLocaleString();document.getElementById('earned').textContent='KSh '+Number(data.wallet.lifetime_earned).toLocaleString();render('all')};})();
-</script></body></html>
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Work Hub | Fanyakazi</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050505;
+      --panel: rgba(17, 16, 15, 0.96);
+      --line: rgba(255, 234, 147, 0.18);
+      --text: #FFEA93;
+      --muted: rgba(255, 234, 147, 0.7);
+      --red: #D90000;
+      --olive: #8DB355;
+      --shadow: 0 24px 55px rgba(0,0,0,0.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(800px 500px at 100% 0%, rgba(217, 0, 0, 0.18), transparent 60%), var(--bg);
+      color: var(--text);
+      font-family: Segoe UI, system-ui, sans-serif;
+    }
+    a { color: inherit; text-decoration: none; }
+    button, input, textarea { font: inherit; }
+    .app { display: flex; min-height: 100vh; }
+    .side {
+      width: 260px;
+      padding: 20px 14px;
+      border-right: 1px solid var(--line);
+      background: rgba(9, 8, 8, 0.97);
+      transition: width 0.2s ease;
+    }
+    .side.collapsed { width: 90px; }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 8px 18px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .brand img { width: 38px; height: 38px; border-radius: 12px; object-fit: cover; border: 1px solid var(--line); }
+    .side.collapsed .brand span, .side.collapsed .nav-label { display: none; }
+    .nav {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .nav button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 10px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+    .nav button.active, .nav button:hover {
+      background: rgba(217, 0, 0, 0.14);
+      border-color: var(--line);
+      color: var(--text);
+    }
+    .nav button b {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      font-weight: 700;
+    }
+    .main {
+      flex: 1;
+      min-width: 0;
+      padding: 28px clamp(18px, 3vw, 52px);
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .eyebrow {
+      color: var(--olive);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 8px 0 0;
+      font-size: clamp(28px, 4vw, 46px);
+      letter-spacing: -0.04em;
+    }
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .top-actions button, .primary-btn, .secondary-btn, .job-action {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    .primary-btn, .job-action.primary {
+      background: linear-gradient(135deg, var(--red), #8a0000);
+      border-color: rgba(255,255,255,0.1);
+      font-weight: 800;
+    }
+    .secondary-btn { background: rgba(255,255,255,0.02); }
+    .job-action:disabled, .primary-btn:disabled { opacity: 0.6; cursor: wait; }
+    .content { max-width: 1180px; }
+    .wallet {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin-bottom: 26px;
+    }
+    .stat {
+      min-width: 180px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .stat b {
+      display: block;
+      margin-top: 8px;
+      font-size: clamp(20px, 2vw, 30px);
+    }
+    .jobs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .job {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      border-top: 3px solid var(--red);
+    }
+    .job.hotel { border-top-color: var(--red); }
+    .job.ai { border-top-color: var(--olive); }
+    .job.done { opacity: 0.82; }
+    .job-image {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      background: linear-gradient(135deg, rgba(217,0,0,0.2), rgba(255,255,255,0.04));
+      display: block;
+    }
+    .job-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 18px 18px 16px;
+      flex: 1;
+    }
+    .job-tag {
+      color: var(--olive);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+    }
+    .job h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.25;
+    }
+    .job p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .job-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: auto;
+      padding-top: 8px;
+    }
+    .reward {
+      font-weight: 800;
+      color: var(--text);
+    }
+    .job a {
+      color: var(--text);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+    .done-pill {
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(141,179,85,0.5);
+      background: rgba(141,179,85,0.12);
+      color: var(--olive);
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .empty-state {
+      padding: 28px 24px;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.02);
+      color: var(--muted);
+      text-align: center;
+    }
+    .notice {
+      min-height: 24px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0,0,0,0.65);
+      z-index: 20;
+    }
+    .modal.open { display: flex; }
+    .dialog {
+      width: min(100%, 560px);
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(17,16,15,0.98);
+      box-shadow: var(--shadow);
+    }
+    .dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .dialog h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .close-btn {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+    }
+    form {
+      display: grid;
+      gap: 12px;
+    }
+    label {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    textarea, input {
+      width: 100%;
+      min-height: 130px;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.02);
+      color: var(--text);
+      resize: vertical;
+    }
+    input {
+      min-height: 46px;
+    }
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    @media (max-width: 760px) {
+      .app { flex-direction: column; }
+      .side {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      .side.collapsed { width: 100%; }
+      .nav { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+      .side.collapsed .brand span, .side.collapsed .nav-label { display: inline; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="side" id="side">
+      <a class="brand" href="../index.html">
+        <img src="../images/Gemini_Generated_Image_ax4xpuax4xpuax4x-removebg-preview.png" alt="Fanyakazi" />
+        <span>FANYAKAZI</span>
+      </a>
+      <nav class="nav" id="programNav"></nav>
+    </aside>
+
+    <main class="main">
+      <div class="top">
+        <div>
+          <div class="eyebrow">Member work hub</div>
+          <h1 id="heading">Available work</h1>
+        </div>
+        <div class="top-actions">
+          <button class="secondary-btn" id="collapse" type="button">☰</button>
+          <button class="secondary-btn" id="signout" type="button">Sign out</button>
+        </div>
+      </div>
+
+      <section class="content">
+        <div class="wallet">
+          <div class="stat">
+            <span>Available balance</span>
+            <b id="balance">KSh 0</b>
+          </div>
+          <div class="stat">
+            <span>Lifetime earned</span>
+            <b id="earned">KSh 0</b>
+          </div>
+        </div>
+
+        <div class="jobs" id="jobs">Loading work...</div>
+        <p class="notice" id="notice" role="status"></p>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="taskModal">
+    <div class="dialog">
+      <div class="dialog-header">
+        <h2 id="taskModalTitle">Complete task</h2>
+        <button class="close-btn" id="closeTaskModal" type="button" aria-label="Close form">✕</button>
+      </div>
+      <form id="taskForm">
+        <label id="taskModalLabel" for="taskInput">Task details</label>
+        <textarea id="taskInput" placeholder="Write your review or task completion notes..." required></textarea>
+        <label for="taskProof">Proof link (optional)</label>
+        <input id="taskProof" type="url" placeholder="https://example.com" />
+        <div class="dialog-actions">
+          <button class="secondary-btn" id="cancelTaskModal" type="button">Cancel</button>
+          <button class="primary-btn" type="submit">Submit task</button>
+        </div>
+      </form>
+      <p class="notice" id="taskNotice"></p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../scripts/supabase-config.js"></script>
+  <script>
+    (async function () {
+      var config = window.FANYAKAZI_CONFIG;
+      var client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+      var session = (await client.auth.getSession()).data.session;
+      if (!session) {
+        window.location.href = '../pages/login.php.html';
+        return;
+      }
+
+      var state = {
+        activeProgram: 'all',
+        programs: [],
+        jobs: [],
+        submissions: [],
+        wallet: { balance: 0, lifetime_earned: 0 }
+      };
+
+      var jobsEl = document.getElementById('jobs');
+      var noticeEl = document.getElementById('notice');
+      var navEl = document.getElementById('programNav');
+      var balanceEl = document.getElementById('balance');
+      var earnedEl = document.getElementById('earned');
+      var modalEl = document.getElementById('taskModal');
+      var taskForm = document.getElementById('taskForm');
+      var taskInput = document.getElementById('taskInput');
+      var taskProof = document.getElementById('taskProof');
+      var taskNotice = document.getElementById('taskNotice');
+      var taskModalTitle = document.getElementById('taskModalTitle');
+      var taskModalLabel = document.getElementById('taskModalLabel');
+
+      function escapeHtml(value) {
+        return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
+        });
+      }
+
+      function formatKES(value) {
+        return 'KSh ' + Number(value || 0).toLocaleString();
+      }
+
+      function setNotice(message, isError) {
+        noticeEl.textContent = message || '';
+        noticeEl.style.color = isError ? '#ff9a9a' : 'var(--muted)';
+      }
+
+      function renderPrograms() {
+        var programs = state.programs || [];
+        if (!programs.length) {
+          navEl.innerHTML = '<button type="button"><b>•</b><span class="nav-label">No active programs</span></button>';
+          return;
+        }
+
+        var html = '<button type="button" class="nav-item ' + (state.activeProgram === 'all' ? 'active' : '') + '" data-program="all"><b>⌂</b><span class="nav-label">All tasks</span></button>';
+        html += programs.map(function (program) {
+          var icon = program.slug === 'hotel-reviews' ? '🏨' : program.slug === 'ai-training' ? '🤖' : '🎯';
+          return '<button type="button" class="nav-item ' + (state.activeProgram === program.id ? 'active' : '') + '" data-program="' + escapeHtml(program.id) + '"><b>' + icon + '</b><span class="nav-label">' + escapeHtml(program.name) + '</span></button>';
+        }).join('');
+
+        navEl.innerHTML = html;
+        navEl.querySelectorAll('.nav-item').forEach(function (button) {
+          button.addEventListener('click', function () {
+            state.activeProgram = button.dataset.program;
+            renderPrograms();
+            renderJobs();
+          });
+        });
+      }
+
+      function renderJobs() {
+        var filtered = (state.jobs || []).filter(function (job) {
+          return state.activeProgram === 'all' || job.program_id === state.activeProgram;
+        });
+
+        if (!filtered.length) {
+          jobsEl.innerHTML = '<div class="empty-state">No tasks are available for this program right now.</div>';
+          return;
+        }
+
+        var map = {};
+        (state.submissions || []).forEach(function (item) {
+          map[item.job_id] = item;
+        });
+
+        jobsEl.innerHTML = filtered.map(function (job) {
+          var submission = map[job.id];
+          var label = job.category === 'hotel_review' ? 'Hotel review' : 'AI training';
+          var icon = job.category === 'hotel_review' ? '🏨' : '🤖';
+          var reward = formatKES(Number(job.reward || (job.category === 'hotel_review' ? 200 : 500)));
+          var action = submission
+            ? '<span class="done-pill">Completed</span>'
+            : '<button class="job-action primary" type="button" data-job-id="' + escapeHtml(job.id) + '" data-kind="' + escapeHtml(job.category) + '">Complete task • ' + escapeHtml(reward) + '</button>';
+
+          var image = job.category === 'hotel_review' && job.image_url
+            ? '<img class="job-image" src="' + escapeHtml(job.image_url) + '" alt="' + escapeHtml(job.title) + '" />'
+            : '';
+
+          var link = job.category === 'ai_training' && job.external_url
+            ? '<a href="' + escapeHtml(job.external_url) + '" target="_blank" rel="noopener noreferrer">Open task link</a>'
+            : '';
+
+          return '<article class="job ' + (job.category === 'hotel_review' ? 'hotel' : 'ai') + (submission ? ' done' : '') + '">' +
+            image +
+            '<div class="job-body">' +
+              '<div class="job-tag">' + icon + ' ' + escapeHtml(label) + '</div>' +
+              '<h2>' + escapeHtml(job.title) + '</h2>' +
+              '<p>' + escapeHtml(job.description) + '</p>' +
+              (link ? '<div>' + link + '</div>' : '') +
+              '<div class="job-meta">' +
+                '<span class="reward">' + escapeHtml(reward) + '</span>' +
+                action +
+              '</div>' +
+            '</div>' +
+          '</article>';
+        }).join('');
+
+        jobsEl.querySelectorAll('[data-job-id]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            openTaskModal(button.dataset.jobId, button.dataset.kind);
+          });
+        });
+      }
+
+      function openTaskModal(jobId, kind) {
+        taskForm.dataset.jobId = jobId;
+        taskForm.dataset.kind = kind;
+        taskInput.value = '';
+        taskProof.value = '';
+        taskNotice.textContent = '';
+
+        if (kind === 'hotel_review') {
+          taskModalTitle.textContent = 'Submit hotel review';
+          taskModalLabel.textContent = 'Hotel review';
+          taskInput.placeholder = 'Write your honest review about the hotel, cleanliness, service, experience, and relevant details.';
+        } else {
+          taskModalTitle.textContent = 'Complete AI task';
+          taskModalLabel.textContent = 'AI task result';
+          taskInput.placeholder = 'Describe the AI task you completed and the result or notes from the work.';
+        }
+
+        modalEl.classList.add('open');
+        taskInput.focus();
+      }
+
+      function closeTaskModal() {
+        modalEl.classList.remove('open');
+        taskForm.reset();
+        taskNotice.textContent = '';
+      }
+
+      document.getElementById('collapse').addEventListener('click', function () {
+        document.getElementById('side').classList.toggle('collapsed');
+      });
+
+      document.getElementById('signout').addEventListener('click', async function () {
+        await client.auth.signOut();
+        window.location.href = '../pages/login.php.html';
+      });
+      document.getElementById('closeTaskModal').addEventListener('click', closeTaskModal);
+      document.getElementById('cancelTaskModal').addEventListener('click', closeTaskModal);
+      modalEl.addEventListener('click', function (event) {
+        if (event.target === modalEl) closeTaskModal();
+      });
+
+      taskForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var jobId = taskForm.dataset.jobId;
+        var kind = taskForm.dataset.kind;
+        var text = taskInput.value.trim();
+        var proofUrl = taskProof.value.trim();
+
+        if (!jobId || !text) {
+          taskNotice.textContent = 'Please provide your task details before submitting.';
+          taskNotice.style.color = '#ff9a9a';
+          return;
+        }
+
+        taskNotice.textContent = 'Submitting task...';
+        taskNotice.style.color = 'var(--muted)';
+
+        try {
+          var endpoint = kind === 'hotel_review' ? '/api/work/reviews' : '/api/work/ai-complete';
+          var response = await fetch(config.apiBaseUrl + endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + session.access_token
+            },
+            body: JSON.stringify({
+              jobId: jobId,
+              reviewText: text,
+              proofUrl: proofUrl || null,
+              note: text
+            })
+          });
+
+          var payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || 'Task submission failed.');
+
+          closeTaskModal();
+          setNotice((kind === 'hotel_review' ? 'Hotel review approved.' : 'AI task approved.') + ' You earned ' + formatKES(payload.reward) + '.', false);
+          await loadOverview();
+        } catch (error) {
+          taskNotice.textContent = error.message || 'Unable to submit task.';
+          taskNotice.style.color = '#ff9a9a';
+        }
+      });
+
+      async function loadOverview() {
+        try {
+          var response = await fetch(config.apiBaseUrl + '/api/work/overview', {
+            headers: { Authorization: 'Bearer ' + session.access_token }
+          });
+          var payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || 'Unable to load work overview.');
+
+          if (!payload.programs || !payload.programs.length) {
+            window.location.href = '../user/activate.html';
+            return;
+          }
+
+          state.programs = payload.programs || [];
+          state.jobs = payload.jobs || [];
+          state.submissions = payload.submissions || [];
+          state.wallet = payload.wallet || { balance: 0, lifetime_earned: 0 };
+
+          balanceEl.textContent = formatKES(state.wallet.balance);
+          earnedEl.textContent = formatKES(state.wallet.lifetime_earned);
+
+          if (!state.activeProgram || (state.activeProgram !== 'all' && !state.programs.some(function (program) { return program.id === state.activeProgram; }))) {
+            state.activeProgram = 'all';
+          }
+
+          renderPrograms();
+          renderJobs();
+          if (!state.programs.length) {
+            setNotice('Activate a program to start earning.', false);
+          }
+        } catch (error) {
+          setNotice(error.message || 'Unable to load work.', true);
+        }
+      }
+
+      await loadOverview();
+    })();
+  </script>
+</body>
+</html>

@@ -59,6 +59,23 @@
     return true;
   }
 
+  async function redirectAfterAuth() {
+    if (!client) return;
+    try {
+      var sessionResult = await client.auth.getSession();
+      var session = sessionResult.data.session;
+      if (!session) return;
+      var response = await fetch((config.apiBaseUrl || '') + '/api/work/overview', {
+        headers: { Authorization: 'Bearer ' + session.access_token }
+      });
+      if (!response.ok) return;
+      var payload = await response.json();
+      window.location.href = payload && payload.programs && payload.programs.length ? '/work' : '../user/activate.html';
+    } catch (error) {
+      window.location.href = '../user/activate.html';
+    }
+  }
+
   function readValue(id) {
     var field = document.getElementById(id);
     return field ? field.value.trim() : '';
@@ -80,7 +97,7 @@
         ? { email: email, password: password }
         : { phone: phone, password: password });
       if (result.error) return showToast(messageFor(result.error));
-      window.location.href = '../user/activate.html';
+      await redirectAfterAuth();
     } catch (error) {
       showToast(messageFor(error));
     } finally {
@@ -121,7 +138,11 @@
       });
       if (result.error) return showToast(messageFor(result.error));
       showSignupSuccess(Boolean(result.data.session));
-      if (result.data.session) setTimeout(function () { window.location.href = '../user/activate.html'; }, 1800);
+      if (result.data.session) {
+        setTimeout(async function () {
+          await redirectAfterAuth();
+        }, 1800);
+      }
     } catch (error) {
       showToast(messageFor(error));
     } finally {
