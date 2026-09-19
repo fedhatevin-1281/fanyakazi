@@ -4,7 +4,7 @@
     "server.mjs": { "includeFiles": ["admin/index.html", "work/index.html"] }
   },
   "builds": [
-    { "src": "server.mjs", "use": "@vercel/node" },
+    { "src": "api/index.mjs", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "payment-callback.html", "use": "@vercel/static" },
     { "src": "pages/**", "use": "@vercel/static" },
@@ -16,7 +16,7 @@
     { "src": "images/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/server.mjs" },
+    { "src": "/api/(.*)", "dest": "/api/index.mjs" },
     { "src": "/work/?$", "dest": "/server.mjs" },
     { "src": "/admin-dashboard/?$", "dest": "/server.mjs" },
     { "src": "/admin", "dest": "/admin/login.html" },
