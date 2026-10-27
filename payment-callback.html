@@ -11,7 +11,7 @@
   <main class="box">
     <div class="status" id="status">...</div>
     <h1 id="title">Confirming payment</h1>
-    <p id="message">We are checking the transaction with Paystack.</p>
+    <p id="message">We are waiting for NOWPayments to confirm your transaction.</p>
     <a id="returnLink" href="/work">Open work hub</a>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -20,19 +20,30 @@
   <script>
     (async function () {
       var query = new URLSearchParams(window.location.search);
-      var reference = query.get('reference') || query.get('trxref');
+  var reference = query.get('order_id') || query.get('reference') || query.get('trxref');
       var result = window.fanyakaziSupabase && await window.fanyakaziSupabase.auth.getSession();
       var session = result && result.data.session;
       if (!reference || !session) throw new Error('Your session has expired. Please sign in again.');
-      var response = await fetch((window.FANYAKAZI_CONFIG.apiBaseUrl || '') + '/api/paystack/verify/' + encodeURIComponent(reference), {
-        headers: { Authorization: 'Bearer ' + session.access_token }
-      });
-      var data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Payment could not be confirmed.');
-      document.getElementById('status').textContent = '✓';
-      document.getElementById('title').textContent = 'Payment confirmed';
-      document.getElementById('message').textContent = 'Your program access is now active.';
-      document.getElementById('returnLink').href = '/work';
+      for (var attempt = 0; attempt < 60; attempt += 1) {
+        var response = await fetch((window.FANYAKAZI_CONFIG.apiBaseUrl || '') + '/api/nowpayments/verify/' + encodeURIComponent(reference), {
+          headers: { Authorization: 'Bearer ' + session.access_token }
+        });
+        var data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Payment could not be confirmed.');
+        if (data.status === 'success') {
+          document.getElementById('status').textContent = '✓';
+          document.getElementById('title').textContent = 'Payment confirmed';
+          document.getElementById('message').textContent = 'Your program access is now active.';
+          document.getElementById('returnLink').href = '/work';
+          return;
+        }
+        if (data.status === 'failed' || data.status === 'abandoned') {
+          throw new Error('Payment was not completed. You can return and try again.');
+        }
+        document.getElementById('message').textContent = 'Payment is processing. This page will update automatically.';
+        await new Promise(function (resolve) { window.setTimeout(resolve, 2000); });
+      }
+      throw new Error('Payment is still processing. Please check back shortly.');
     })().catch(function (error) {
       document.getElementById('status').textContent = '!';
       document.getElementById('title').textContent = 'Payment not confirmed';

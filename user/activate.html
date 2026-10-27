@@ -43,7 +43,7 @@
     <section>
       <div class="eyebrow">Member activation</div>
       <h1>Choose your first earning program.</h1>
-      <p class="intro">Activate a program once with M-Pesa, then complete its daily tasks and earn directly through Fanyakazi.</p>
+      <p class="intro">Activate a program once with cryptocurrency through NOWPayments, then complete daily tasks and earn directly through Fanyakazi.</p>
       <div class="programs">
         <article class="program"><div class="eyebrow">Daily reviews</div><h2>Hotel Reviews</h2><p>Review real hotels and earn for every completed review.</p><div class="price">Unlock for KSh 80</div><button class="activate" data-slug="hotel-reviews" data-amount="80" type="button">Activate program</button></article>
         <article class="program"><div class="eyebrow">Guided sessions</div><h2>Y99 Sessions</h2><p>Complete short guided sessions and earn daily rewards.</p><div class="price">Unlock for KSh 100</div><button class="activate" data-slug="y99" data-amount="100" type="button">Activate program</button></article>
@@ -55,7 +55,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../scripts/supabase-config.js"></script>
   <script src="../scripts/supabase-auth.js"></script>
-  <script src="../scripts/paystack.js"></script>
+  <script src="../scripts/nowpayments.js"></script>
   <script>
     (async function () {
       var client = window.fanyakaziSupabase;
@@ -88,7 +88,7 @@
           button.disabled = true;
           notice.textContent = 'Opening secure payment...';
           try {
-            await window.startPaystackCheckout(button.dataset.slug, Number(button.dataset.amount));
+            await window.startNowPaymentsCheckout(button.dataset.slug, Number(button.dataset.amount));
           } catch (error) {
             notice.textContent = error.message || 'Unable to start activation.';
             button.disabled = false;

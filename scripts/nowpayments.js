@@ -1,7 +1,7 @@
 (function () {
   var config = window.FANYAKAZI_CONFIG || {};
 
-  window.startPaystackCheckout = async function (programSlug, amount) {
+  window.startNowPaymentsCheckout = async function (programSlug, amount) {
     var supabaseClient = window.fanyakaziSupabase;
     if (!supabaseClient) throw new Error('Supabase is not configured.');
     var sessionResult = await supabaseClient.auth.getSession();
@@ -10,7 +10,7 @@
       window.location.href = '/pages/login.php.html';
       return;
     }
-    var response = await fetch((config.apiBaseUrl || '') + '/api/paystack/initialize', {
+    var response = await fetch((config.apiBaseUrl || '') + '/api/nowpayments/initialize', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -20,6 +20,6 @@
     });
     var data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Unable to start payment.');
-    window.location.href = data.authorization_url;
+    window.location.href = data.invoice_url;
   };
 })();

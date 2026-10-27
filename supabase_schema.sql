@@ -1,6 +1,6 @@
 -- Fanyakazi / Supabase schema
 -- Run in the Supabase SQL editor.
--- Paystack secret keys must remain in the PHP server environment.
+-- Payment provider keys must remain on the server.
 
 create extension if not exists pgcrypto;
 create extension if not exists citext;
@@ -69,7 +69,13 @@ create table if not exists public.transactions (
   amount numeric(12,2) not null check (amount > 0),
   currency text not null default 'KES',
   status public.transaction_status not null default 'pending',
-  paystack_reference text not null unique,
+  payment_provider text not null default 'nowpayments',
+  provider_reference text,
+  provider_price_amount numeric(12,2),
+  provider_price_currency text,
+  nowpayments_invoice_id text,
+  nowpayments_payment_id text,
+  paystack_reference text unique,
   paystack_access_code text,
   paystack_transaction_id text,
   customer_email text,
@@ -79,6 +85,16 @@ create table if not exists public.transactions (
   updated_at timestamptz not null default now(),
   constraint transaction_program_required check (type = 'registration' or program_id is not null)
 );
+
+alter table public.transactions alter column paystack_reference drop not null;
+alter table public.transactions add column if not exists payment_provider text not null default 'nowpayments';
+alter table public.transactions add column if not exists provider_reference text;
+alter table public.transactions add column if not exists provider_price_amount numeric(12,2);
+alter table public.transactions add column if not exists provider_price_currency text;
+alter table public.transactions add column if not exists nowpayments_invoice_id text;
+alter table public.transactions add column if not exists nowpayments_payment_id text;
+create unique index if not exists transactions_provider_reference_unique
+  on public.transactions(payment_provider, provider_reference) where provider_reference is not null;
 
 create table if not exists public.user_programs (
   id uuid primary key default gen_random_uuid(),
@@ -301,10 +317,9 @@ on conflict (slug) do nothing;
 -- update public.profiles set role = 'admin' where id = 'USER-UUID-HERE';
 
 -- The server.mjs backend should use the Supabase service-role key for:
--- 1. Paystack transaction initialization and verification.
--- 2. Webhook processing.
--- 3. Inserting successful transactions and unlocks.
--- 4. Updating wallets and writing audit logs.
+-- 1. NOWPayments invoice creation and signed IPN processing.
+-- 2. Inserting successful transactions and unlocking programs.
+-- 3. Updating wallets and writing audit logs.
 
 -- Admin-granted access migration. Run this block after the original schema.
 alter table public.transactions drop constraint if exists transactions_type_check;

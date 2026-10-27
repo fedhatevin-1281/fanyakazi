@@ -3,10 +3,11 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
+import crypto from 'node:crypto';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'PAYSTACK_SECRET_KEY'];
+const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'NOWPAYMENTS_API_KEY', 'NOWPAYMENTS_IPN_SECRET'];
 const missingEnv = requiredEnv.filter((name) => !process.env[name]);
 if (missingEnv.length) {
   console.error(`Missing required environment variables: ${missingEnv.join(', ')}`);
@@ -113,22 +114,78 @@ function normalizeImageUrls(value) {
   return [...new Set(raw.map((item) => String(item || '').trim()).filter(Boolean))];
 }
 
-async function paystackRequest(path, body) {
-  if (!process.env.PAYSTACK_SECRET_KEY) throw new Error('Payment service is not configured');
-  const response = await fetch(`https://api.paystack.co/${path}`, {
+async function nowPaymentsRequest(path, body) {
+  if (!process.env.NOWPAYMENTS_API_KEY) throw new Error('Payment service is not configured');
+  const response = await fetch(`https://api.nowpayments.io/v1/${path}`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      'x-api-key': process.env.NOWPAYMENTS_API_KEY,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(body)
   });
   const payload = await response.json();
-  if (!response.ok || !payload.status) throw new Error(payload.message || 'Paystack request failed');
-  return payload.data;
+  if (!response.ok) throw new Error(payload.message || 'NOWPayments request failed');
+  return payload;
 }
 
-app.post('/api/paystack/initialize', async (req, res) => {
+function isValidNowPaymentsSignature(payload, signature) {
+  if (!process.env.NOWPAYMENTS_IPN_SECRET || !/^[a-f\d]{128}$/i.test(signature || '')) return false;
+  const orderedPayload = Object.keys(payload).sort().reduce((ordered, key) => {
+    ordered[key] = payload[key];
+    return ordered;
+  }, {});
+  const expected = crypto.createHmac('sha512', process.env.NOWPAYMENTS_IPN_SECRET)
+    .update(JSON.stringify(orderedPayload)).digest();
+  const received = Buffer.from(signature, 'hex');
+  return received.length === expected.length && crypto.timingSafeEqual(received, expected);
+}
+
+app.post('/api/nowpayments/ipn', async (req, res) => {
+  try {
+    if (!isValidNowPaymentsSignature(req.body || {}, req.headers['x-nowpayments-sig'])) {
+      return res.status(401).json({ error: 'Invalid payment notification signature' });
+    }
+    const payment = req.body;
+    const reference = payment.order_id;
+    if (!reference) return res.status(400).json({ error: 'Payment order reference is required' });
+    const { data: transaction, error: transactionError } = await supabaseAdmin
+      .from('transactions').select('id, user_id, program_id, status, provider_price_amount, provider_price_currency')
+      .eq('payment_provider', 'nowpayments').eq('provider_reference', reference).single();
+    if (transactionError || !transaction) return res.status(404).json({ error: 'Payment order not found' });
+    if (Number(transaction.provider_price_amount) !== Number(payment.price_amount) ||
+        String(transaction.provider_price_currency).toLowerCase() !== String(payment.price_currency).toLowerCase()) {
+      return res.status(400).json({ error: 'Payment amount does not match the order' });
+    }
+
+    if (payment.payment_status === 'finished') {
+      if (!['pending', 'success'].includes(transaction.status)) {
+        return res.status(409).json({ error: 'Payment order is no longer pending' });
+      }
+      const { error: updateError } = await supabaseAdmin.from('transactions').update({
+        status: 'success', nowpayments_payment_id: String(payment.payment_id || ''), paid_at: new Date().toISOString()
+      }).eq('id', transaction.id).eq('status', 'pending');
+      if (updateError) throw updateError;
+      if (transaction.program_id) {
+        const { error: accessError } = await supabaseAdmin.from('user_programs').upsert({
+          user_id: transaction.user_id, program_id: transaction.program_id, transaction_id: transaction.id
+        }, { onConflict: 'user_id,program_id' });
+        if (accessError) throw accessError;
+      }
+    } else if (['failed', 'refunded', 'expired'].includes(payment.payment_status) && transaction.status === 'pending') {
+      const status = payment.payment_status === 'expired' ? 'abandoned' : 'failed';
+      const { error: updateError } = await supabaseAdmin.from('transactions').update({ status })
+        .eq('id', transaction.id).eq('status', 'pending');
+      if (updateError) throw updateError;
+    }
+    res.json({ received: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Unable to process payment notification' });
+  }
+});
+
+app.post('/api/nowpayments/initialize', async (req, res) => {
+  let transactionId;
   try {
     const user = await authenticatedUser(req, res);
     if (!user) return;
@@ -141,58 +198,54 @@ app.post('/api/paystack/initialize', async (req, res) => {
     if (programError || !program || Number(program.unlock_amount) !== Number(amount)) {
       return res.status(400).json({ error: 'Invalid program amount' });
     }
-    const reference = `vh_${user.id}_${Date.now()}`;
-    const callbackUrl = `${process.env.APP_URL || `${req.protocol}://${req.get('host')}`}/payment-callback.html`;
-    const transaction = await paystackRequest('transaction/initialize', {
-      email: user.email || `${user.id}@users.fanyakazi.co.ke`,
-      amount: Math.round(Number(amount) * 100),
-      currency: 'KES',
-      reference,
-      callback_url: callbackUrl,
-      metadata: { user_id: user.id, program_id: program.id, program_slug: program.slug }
-    });
-    const { error: insertError } = await supabaseAdmin.from('transactions').insert({
+    const conversionRate = Number(process.env.NOWPAYMENTS_KES_TO_PRICE_CURRENCY_RATE);
+    if (!Number.isFinite(conversionRate) || conversionRate <= 0) {
+      return res.status(503).json({ error: 'Payment currency conversion is not configured' });
+    }
+    const priceCurrency = (process.env.NOWPAYMENTS_PRICE_CURRENCY || 'usd').toLowerCase();
+    const providerPriceAmount = Number((Number(amount) * conversionRate).toFixed(2));
+    if (providerPriceAmount <= 0) return res.status(400).json({ error: 'Invalid converted payment amount' });
+    const reference = `vh_${crypto.randomUUID()}`;
+    const { data: transaction, error: insertError } = await supabaseAdmin.from('transactions').insert({
       user_id: user.id, program_id: program.id, type: 'program_unlock', amount: Number(amount),
-      currency: 'KES', status: 'pending', paystack_reference: reference,
-      paystack_access_code: transaction.access_code, customer_email: user.email
-    });
+      currency: 'KES', status: 'pending', payment_provider: 'nowpayments', provider_reference: reference,
+      provider_price_amount: providerPriceAmount, provider_price_currency: priceCurrency, customer_email: user.email
+    }).select('id').single();
     if (insertError) throw insertError;
-    res.json({ authorization_url: transaction.authorization_url, access_code: transaction.access_code, reference });
+    transactionId = transaction.id;
+
+    const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
+    const invoice = await nowPaymentsRequest('invoice', {
+      price_amount: providerPriceAmount,
+      price_currency: priceCurrency,
+      order_id: reference,
+      order_description: `${program.name} program unlock`,
+      ipn_callback_url: `${baseUrl}/api/nowpayments/ipn`,
+      success_url: `${baseUrl}/payment-callback.html?order_id=${encodeURIComponent(reference)}`,
+      cancel_url: `${baseUrl}/user/activate.html?payment=cancelled`
+    });
+    const { error: updateError } = await supabaseAdmin.from('transactions').update({
+      nowpayments_invoice_id: String(invoice.id)
+    }).eq('id', transaction.id);
+    if (updateError) throw updateError;
+    res.json({ invoice_url: invoice.invoice_url, reference });
   } catch (error) {
+    if (transactionId) {
+      await supabaseAdmin.from('transactions').update({ status: 'failed' }).eq('id', transactionId).eq('status', 'pending');
+    }
     res.status(500).json({ error: error.message || 'Unable to initialize payment' });
   }
 });
 
-app.get('/api/paystack/verify/:reference', async (req, res) => {
+app.get('/api/nowpayments/verify/:reference', async (req, res) => {
   try {
     const user = await authenticatedUser(req, res);
     if (!user) return;
-    const { reference } = req.params;
-    const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
-    });
-    const payload = await response.json();
-    if (!response.ok || !payload.status || payload.data.status !== 'success') {
-      return res.status(400).json({ error: 'Payment has not been confirmed' });
-    }
-    const payment = payload.data;
-    const { data: transaction, error: transactionError } = await supabaseAdmin
-      .from('transactions').select('id, user_id, program_id, amount, currency, status').eq('paystack_reference', reference).single();
-    if (transactionError || !transaction || transaction.user_id !== user.id ||
-        transaction.currency !== 'KES' || payment.currency !== 'KES' ||
-        Number(transaction.amount) * 100 !== Number(payment.amount)) {
-      return res.status(403).json({ error: 'Payment does not match this account' });
-    }
-    const { error: updateError } = await supabaseAdmin.from('transactions').update({
-      status: 'success', paystack_transaction_id: String(payment.id), paid_at: new Date().toISOString()
-    }).eq('id', transaction.id).eq('status', 'pending');
-    if (updateError) throw updateError;
-    if (transaction.program_id) {
-      await supabaseAdmin.from('user_programs').upsert({
-        user_id: user.id, program_id: transaction.program_id, transaction_id: transaction.id
-      }, { onConflict: 'user_id,program_id' });
-    }
-    res.json({ status: 'success', reference });
+    const { data: transaction, error } = await supabaseAdmin.from('transactions')
+      .select('status').eq('payment_provider', 'nowpayments').eq('provider_reference', req.params.reference)
+      .eq('user_id', user.id).single();
+    if (error || !transaction) return res.status(404).json({ error: 'Payment order not found' });
+    res.json({ status: transaction.status });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Unable to verify payment' });
   }
@@ -205,7 +258,7 @@ app.get('/api/admin/overview', async (req, res) => {
     const [usersResult, referralsResult, transactionsResult, programsResult, jobsResult, withdrawalsResult] = await Promise.all([
       supabaseAdmin.from('profiles').select('id, username, phone, country, role, is_active, created_at, referral_code').order('created_at', { ascending: false }).limit(100),
       supabaseAdmin.from('referrals').select('id, referrer_id, referred_id, created_at').order('created_at', { ascending: false }).limit(100),
-      supabaseAdmin.from('transactions').select('id, user_id, program_id, amount, currency, status, type, paystack_reference, created_at, paid_at').order('created_at', { ascending: false }).limit(100),
+      supabaseAdmin.from('transactions').select('id, user_id, program_id, amount, currency, status, type, payment_provider, provider_reference, created_at, paid_at').order('created_at', { ascending: false }).limit(100),
       supabaseAdmin.from('programs').select('id, name, slug, unlock_amount, is_active').order('name'),
       supabaseAdmin.from('jobs').select('id, program_id, category, title, description, image_url, image_urls, external_url, reward, created_at, created_by').order('created_at', { ascending: false }),
       supabaseAdmin.from('withdrawal_requests').select('id, user_id, amount, phone, note, status, requested_at, approved_at').order('requested_at', { ascending: false }).limit(100)
@@ -346,8 +399,8 @@ app.post('/api/admin/grant-access', async (req, res) => {
     }
     const reference = `admin_grant_${userId}_${program.id}`;
     const { data: transaction, error: transactionError } = await supabaseAdmin.from('transactions').insert({
-      user_id: userId, program_id: program.id, type: 'program_unlock', amount: Number(program.unlock_amount),
-      currency: 'KES', status: 'success', paystack_reference: reference,
+      user_id: userId, program_id: program.id, type: 'admin_grant', amount: Number(program.unlock_amount),
+      currency: 'KES', status: 'success', payment_provider: 'manual', provider_reference: reference,
       customer_email: null, paid_at: new Date().toISOString(), metadata: { granted_by: admin.id }
     }).select('id').single();
     if (transactionError) throw transactionError;
