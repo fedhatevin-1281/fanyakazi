@@ -20,7 +20,7 @@
   <script>
     (async function () {
       var query = new URLSearchParams(window.location.search);
-  var reference = query.get('order_id') || query.get('reference') || query.get('trxref');
+        var reference = query.get('order_id') || query.get('reference') || query.get('trxref');
       var result = window.fanyakaziSupabase && await window.fanyakaziSupabase.auth.getSession();
       var session = result && result.data.session;
       if (!reference || !session) throw new Error('Your session has expired. Please sign in again.');

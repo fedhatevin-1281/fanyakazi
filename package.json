@@ -5,7 +5,8 @@
   "description": "Fanyakazi website",
   "scripts": {
     "dev": "vite",
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "test": "node --test"
   },
   "devDependencies": {
     "vite": "^7.1.5"

@@ -75,9 +75,9 @@ create table if not exists public.transactions (
   provider_price_currency text,
   nowpayments_invoice_id text,
   nowpayments_payment_id text,
-  paystack_reference text unique,
-  paystack_access_code text,
-  paystack_transaction_id text,
+  legacy_provider_reference text,
+  legacy_access_code text,
+  legacy_transaction_id text,
   customer_email text,
   paid_at timestamptz,
   metadata jsonb not null default '{}'::jsonb,
@@ -86,13 +86,58 @@ create table if not exists public.transactions (
   constraint transaction_program_required check (type = 'registration' or program_id is not null)
 );
 
-alter table public.transactions alter column paystack_reference drop not null;
-alter table public.transactions add column if not exists payment_provider text not null default 'nowpayments';
+do $$ begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'transactions' and column_name = 'paystack_reference'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'transactions' and column_name = 'legacy_provider_reference'
+  ) then
+    alter table public.transactions rename column paystack_reference to legacy_provider_reference;
+  end if;
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'transactions' and column_name = 'paystack_access_code'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'transactions' and column_name = 'legacy_access_code'
+  ) then
+    alter table public.transactions rename column paystack_access_code to legacy_access_code;
+  end if;
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'transactions' and column_name = 'paystack_transaction_id'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'transactions' and column_name = 'legacy_transaction_id'
+  ) then
+    alter table public.transactions rename column paystack_transaction_id to legacy_transaction_id;
+  end if;
+end $$;
+
+alter table public.transactions add column if not exists legacy_provider_reference text;
+alter table public.transactions add column if not exists legacy_access_code text;
+alter table public.transactions add column if not exists legacy_transaction_id text;
+alter table public.transactions alter column legacy_provider_reference drop not null;
+alter table public.transactions add column if not exists payment_provider text;
 alter table public.transactions add column if not exists provider_reference text;
 alter table public.transactions add column if not exists provider_price_amount numeric(12,2);
 alter table public.transactions add column if not exists provider_price_currency text;
 alter table public.transactions add column if not exists nowpayments_invoice_id text;
 alter table public.transactions add column if not exists nowpayments_payment_id text;
+update public.transactions
+set payment_provider = case
+  when type = 'admin_grant' then 'manual'
+  when legacy_provider_reference is not null then 'legacy_paystack'
+  else 'nowpayments'
+end
+where payment_provider is null
+   or (payment_provider = 'nowpayments' and legacy_provider_reference is not null);
+alter table public.transactions alter column payment_provider set default 'nowpayments';
+alter table public.transactions alter column payment_provider set not null;
+create unique index if not exists transactions_legacy_provider_reference_unique
+  on public.transactions(legacy_provider_reference) where legacy_provider_reference is not null;
 create unique index if not exists transactions_provider_reference_unique
   on public.transactions(payment_provider, provider_reference) where provider_reference is not null;
 

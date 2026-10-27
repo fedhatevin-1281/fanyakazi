@@ -3,7 +3,7 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import crypto from 'node:crypto';
+import { isValidNowPaymentsSignature } from './lib/nowpayments.mjs';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -124,26 +124,14 @@ async function nowPaymentsRequest(path, body) {
     },
     body: JSON.stringify(body)
   });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.message || 'NOWPayments request failed');
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.message || payload.msg || `NOWPayments request failed (${response.status})`);
   return payload;
-}
-
-function isValidNowPaymentsSignature(payload, signature) {
-  if (!process.env.NOWPAYMENTS_IPN_SECRET || !/^[a-f\d]{128}$/i.test(signature || '')) return false;
-  const orderedPayload = Object.keys(payload).sort().reduce((ordered, key) => {
-    ordered[key] = payload[key];
-    return ordered;
-  }, {});
-  const expected = crypto.createHmac('sha512', process.env.NOWPAYMENTS_IPN_SECRET)
-    .update(JSON.stringify(orderedPayload)).digest();
-  const received = Buffer.from(signature, 'hex');
-  return received.length === expected.length && crypto.timingSafeEqual(received, expected);
 }
 
 app.post('/api/nowpayments/ipn', async (req, res) => {
   try {
-    if (!isValidNowPaymentsSignature(req.body || {}, req.headers['x-nowpayments-sig'])) {
+    if (!isValidNowPaymentsSignature(req.body || {}, req.headers['x-nowpayments-sig'], process.env.NOWPAYMENTS_IPN_SECRET)) {
       return res.status(401).json({ error: 'Invalid payment notification signature' });
     }
     const payment = req.body;
@@ -205,6 +193,15 @@ app.post('/api/nowpayments/initialize', async (req, res) => {
     const priceCurrency = (process.env.NOWPAYMENTS_PRICE_CURRENCY || 'usd').toLowerCase();
     const providerPriceAmount = Number((Number(amount) * conversionRate).toFixed(2));
     if (providerPriceAmount <= 0) return res.status(400).json({ error: 'Invalid converted payment amount' });
+    let appUrl;
+    try {
+      appUrl = new URL(process.env.APP_URL);
+    } catch {
+      return res.status(503).json({ error: 'A public HTTPS APP_URL is required for payment callbacks' });
+    }
+    if (appUrl.protocol !== 'https:') {
+      return res.status(503).json({ error: 'APP_URL must use HTTPS for payment callbacks' });
+    }
     const reference = `vh_${crypto.randomUUID()}`;
     const { data: transaction, error: insertError } = await supabaseAdmin.from('transactions').insert({
       user_id: user.id, program_id: program.id, type: 'program_unlock', amount: Number(amount),
@@ -214,7 +211,7 @@ app.post('/api/nowpayments/initialize', async (req, res) => {
     if (insertError) throw insertError;
     transactionId = transaction.id;
 
-    const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
+    const baseUrl = appUrl.origin;
     const invoice = await nowPaymentsRequest('invoice', {
       price_amount: providerPriceAmount,
       price_currency: priceCurrency,
@@ -224,11 +221,14 @@ app.post('/api/nowpayments/initialize', async (req, res) => {
       success_url: `${baseUrl}/payment-callback.html?order_id=${encodeURIComponent(reference)}`,
       cancel_url: `${baseUrl}/user/activate.html?payment=cancelled`
     });
+    if (!invoice.id || !invoice.invoice_url || new URL(invoice.invoice_url).protocol !== 'https:') {
+      throw new Error('NOWPayments did not return a valid secure invoice');
+    }
     const { error: updateError } = await supabaseAdmin.from('transactions').update({
       nowpayments_invoice_id: String(invoice.id)
     }).eq('id', transaction.id);
     if (updateError) throw updateError;
-    res.json({ invoice_url: invoice.invoice_url, reference });
+    res.json({ invoice_url: new URL(invoice.invoice_url).toString(), reference });
   } catch (error) {
     if (transactionId) {
       await supabaseAdmin.from('transactions').update({ status: 'failed' }).eq('id', transactionId).eq('status', 'pending');
